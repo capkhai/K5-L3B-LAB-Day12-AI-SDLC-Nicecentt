@@ -18,7 +18,7 @@ import math
 from ..freshness import decay_items, is_v12, make_item, public_item
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
-from . import gather_fish
+from . import gather_current, gather_fish
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -80,6 +80,7 @@ class GatherSim:
         self._monster_mod = _load_monster_module()
         if self._monster_mod is not None and ("monsters" in t or "monsters" in scenario):
             self.monsters = self._monster_mod.init_monsters(self, scenario, self.day)
+        self.current_ctrl = gather_current.init_current(self, scenario)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -95,21 +96,23 @@ class GatherSim:
     def snapshot(self) -> dict:
         hold_snap = [public_item(it) for it in self.hold] if self.v12 else list(self.hold)
         snap = {
-            "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
+            "player": {"pos": list(self.pos), "vel": list(self.vel), "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
             "hold": hold_snap, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
-            "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
+            "nodes": [{"id": n["id"], "pos": list(n["pos"]), "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": list(f["pos"]), "kind": f["kind"], "heading_deg": f["heading_deg"]}
                      for f in sort_by_id(self.fish)],
         }
         if self._monster_mod is not None and ("monsters" in self.t or self.monsters):
             snap["monsters"] = self._monster_mod.snapshot_monsters(self)
+        if self.current_ctrl is not None:
+            snap["current"] = gather_current.snapshot_current(self)
         return snap
 
     # --- một bước (đúng thứ tự PRD-0, Phase 2 mục 4.5 & Phase 3 TICKET-03) ------
@@ -136,9 +139,12 @@ class GatherSim:
                 "hold",
                 events,
             )
-        # 2. bơi + chặn mép + phân vùng + oxy / ngạt / ngất
+        # 2. dòng nước lũ (trước di chuyển) + bơi + lực dòng + chặn mép + phân vùng + oxy / ngạt / ngất
+        gather_current.step_before_move(self, events)
         was_at_surface = self._at_surface()
+        start_d = self.pos[1]
         self._move(inp)
+        gather_current.apply_force(self, start_d)
         now_at_surface = self._at_surface()
         if was_at_surface and not now_at_surface:
             events.append(("dive", {"pos": list(self.pos)}))
@@ -189,7 +195,8 @@ class GatherSim:
             self.hold.extend([kind] * count)
 
     def _faint(self, cause: str, events: list):
-        """Ngất: mất toàn bộ giỏ còn lại (LIFO), phát faint + gather_end(fainted)."""
+        """Ngất: mất toàn bộ giỏ còn lại (LIFO), phát current_end (nếu có) + faint + gather_end(fainted)."""
+        gather_current.end_for_phase(self, events)
         if self.v12:
             lost = [public_item(it) for it in reversed(self.hold)]
         else:
@@ -276,6 +283,7 @@ class GatherSim:
         return False
 
     def _finish(self, reason, events):
+        gather_current.end_for_phase(self, events)
         self.done = True
         self.reason = reason
         events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))

@@ -35,13 +35,17 @@ class GatherMonstersTest(unittest.TestCase):
             self.assertEqual(read_inventory(p), {"ca_keo": 2, "keo_neo": 1})
 
     def test_day_spawns_m1_on_day1_and_m1_m2_on_day3(self):
-        tuning = load_contract()["tuning"]
+        contract = load_contract()
+        tuning = contract["tuning"]
+        has_snake = "snake" in contract.get("extensions", [])
+        day1_expected = ["M1", "M3"] if has_snake else ["M1"]
+        day3_expected = ["M1", "M2", "M3"] if has_snake else ["M1", "M2"]
         g1 = GatherSim(tuning, {}, Streams(1), IdAllocator(), day=1)
-        self.assertEqual([m["id"] for m in g1.snapshot()["monsters"]], ["M1"])
+        self.assertEqual([m["id"] for m in g1.snapshot()["monsters"]], day1_expected)
         g2 = GatherSim(tuning, {}, Streams(1), IdAllocator(), day=2)
-        self.assertEqual([m["id"] for m in g2.snapshot()["monsters"]], ["M1"])
+        self.assertEqual([m["id"] for m in g2.snapshot()["monsters"]], day1_expected)
         g3 = GatherSim(tuning, {}, Streams(1), IdAllocator(), day=3)
-        self.assertEqual([m["id"] for m in g3.snapshot()["monsters"]], ["M1", "M2"])
+        self.assertEqual([m["id"] for m in g3.snapshot()["monsters"]], day3_expected)
 
     def test_patrol_speed_and_waypoint_toggle(self):
         tuning = load_contract()["tuning"]

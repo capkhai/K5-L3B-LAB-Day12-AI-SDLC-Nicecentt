@@ -10,7 +10,8 @@ import json
 from .errors import BadInput
 from .inventory import KINDS_P2, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "monsters", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "monsters", "time_left_ticks",
+               "random_current", "current_direction"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -100,6 +101,12 @@ def _validate_gather(b, tuning):
             _check_ids(arr, b[arr])
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
+    if "random_current" in b and not isinstance(b["random_current"], bool):
+        raise BadInput("random_current phải là boolean")
+    if "current_direction" in b:
+        cd = b["current_direction"]
+        if isinstance(cd, bool) or not isinstance(cd, int) or cd not in (-1, 1):
+            raise BadInput("current_direction phải là -1 hoặc 1")
     if "hold" in b:
         h = b["hold"]
         if not isinstance(h, list) or any(not isinstance(k, str) or k not in kinds for k in h):
