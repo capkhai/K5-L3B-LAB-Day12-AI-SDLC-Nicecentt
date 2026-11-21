@@ -49,3 +49,23 @@ Nguồn: [toàn văn ticket người dùng cung cấp](prd-phase-2.md). Các quy
 - **Nhung/Integrator:** giữ game.contract.json và inventory.py theo phân công; manifest ở working tree hiện vẫn 1.0. Fixture 1.1 chỉ nằm trong tests/fixtures và bản sao kiểm chứng, không thay cấu hình chung. Cần ghép fish_initial=8, 6 nguyên liệu/6 món, 2 bếp/4 bàn, day_plan/shop, validation monsters/age_ticks và engine Gather trước khi xác nhận chạy day mặc định.
 - Có sửa nhỏ `contract.py` để đọc cả v1.0/v1.1 và kiểm dữ liệu day/shop/burn; `scenario.py` thêm điểm nối `validate_phase_block` và route day, suy nguyên liệu hợp lệ từ dữ liệu menu thay vì khóa 4 loại P1. Đây là phụ thuộc cần thiết để CLI/day chạy được, không thay schema kho hoặc hoàn thành hộ validation Gather v1.1 của Nhung.
 - Bằng chứng và các giới hạn: [chur04 Phase 2](proof/phase-2/chur04/README.md). Giữ nhánh cá nhân hiện có `2A202603873_VuVanChu`; không tạo nhánh mới, commit, push hay tag.
+
+## Phase 3 — lát 3 Quán (21/11/2026)
+
+Người dùng xác nhận làm phần Quán: hao độ tươi, giữ chỗ bằng ID, thử giữ lại và giá chốt. Bản ticket được cung cấp chưa nêu công thức giá; người dùng cho phép tự đề xuất phần thiếu. Những giả định dưới đây không được coi là câu trả lời của giảng viên hay luật trích từ PRD.
+
+| Vấn đề | Quyết định / nguồn |
+|---|---|
+| Giá theo fresh | **Giả định được người dùng cho phép:** floor(giá menu × trung bình cộng fresh của toàn bộ cá thể dùng nấu / initial). initial chuẩn là 100. Tính sau hao tươi của bước nấu, chốt vào payload món; không hao/định giá lại sau khi rời kho thô. Nếu tích hợp có công thức chính thức khác, đổi tại FreshStock.consume và các test giá tương ứng. |
+| Chọn nguyên liệu | Lấy đủ công thức từ hàng chưa ươn/chưa giữ, tươi nhất trước, hòa theo id tự nhiên. Mảng reserved xuất theo id; cook_started.items sắp theo kind rồi id. Phần giữ tường minh của fixture được kiểm trước, sau đó cấp phần thiếu theo order_tick rồi id bàn. |
+| Khi một phần giữ vừa ươn | Phát hết spoiled theo id trước. Nhả toàn bộ phần giữ của các đơn bị ảnh hưởng, rồi thử cấp đủ công thức lại theo order_tick/id bàn. Thiếu thì unfulfillable, reserved=[], tiếp tục chờ; không giữ một phần, không lấy của đơn chưa bị ảnh hưởng. Đây là cách chốt phần quy trình chưa đầy đủ trong ticket đính kèm. |
+| Hàng ươn trong kho | Giữ cá thể trong tồn vật lý/snapshot, vẫn hao về 0, không dùng nấu/giữ/chọn món. Hàng đã ươn lúc nạp không phát spoiled lại; event chỉ phát khi đi từ ≥30 xuống <30. |
+| Tính chính xác | Dùng Fraction từ giá trị thập phân đầu vào, hao theo tuning/tick_hz; không cộng/trừ float lặp để quyết định ngưỡng/floor. JSONL không làm tròn fresh về 3 chữ số. Chặn trường hợp đổi sang float làm hàng đã ươn hiển thị lại đúng 30 bằng nextafter. |
+
+### Tác động và thứ tự tích hợp
+
+1. `quan_freshness.validate_stock(items,kinds)` kiểm/copy mảng cá thể; `FreshStock` gắn vào QuanSim khi có tuning.freshness. QuanSim nhận inventory hoặc scenario.stock dạng mảng và giữ nguyên id/fresh khi dựng, không hao ở tick 0. Không có freshness thì chạy nhánh đếm P1/P2 như cũ.
+2. Lát schema cần ghép manifest 1.2, đọc/ghi kho cá thể và từ chối kho đếm theo version; lát Gather cấp/giữ id, hao tươi, LIFO và xuất đủ độ chính xác. Lát day/Shop phải chuyển stock sang list, bàn giao cùng tick không hao, giữ IdAllocator xuyên Ngày và cấp id mới cho hold template từ Ngày 2. Các phần này chưa được sửa trong lát Quán.
+3. Luồng Quán đã nối: đồng hồ/timer → FreshStock.step (hao tươi, toàn bộ spoiled, giữ lại) → chín/cháy → di chuyển/interact → kết toán/đóng ca → sinh khách thường. Burn dùng lại bộ chọn cá thể; hàng đã nấu không hoàn lại. Pause do Session chặn trước gameplay nên không hao tươi.
+4. `scenario.py` nhận stock/reserved dạng list khi có freshness, các liên kết giữ thực tế do QuanSim kiểm trước khi writer mở file. `jsonl.py` chỉ đổi cách xuất trường fresh, tọa độ vẫn 3 chữ số. Không sửa game.contract.json, inventory.py, Gather, day/Shop hay HUD trong thay đổi này.
+5. Bằng chứng: [lát 3 Quán](proof/phase-3/chur04/README.md). Chưa bật v1.2 toàn project, chưa xác nhận file/day/HUD hoặc mở rộng đặt trước. Người dùng tự commit; không stage/commit/push/tag tự động.

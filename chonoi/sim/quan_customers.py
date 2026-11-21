@@ -9,6 +9,8 @@ from ..ids import sort_by_id
 
 def available_stock(sim) -> dict:
     """Tồn khả dụng = tồn vật lý trừ tổng phần giữ chỗ của các đơn reserved."""
+    if sim.fresh_stock is not None:
+        return sim.fresh_stock.available_counts()
     available = dict(sim.stock)
     for customer in sim.customers:
         if customer.get("order_status") == "reserved":
@@ -71,7 +73,7 @@ class CustomerSpawner:
             "state": "waiting",
             "patience_ticks_left": sim.patience_max_ticks,
             "eat_ticks_left": 0,
-            "reserved": recipe,
+            "reserved": sim.fresh_stock.select(recipe) if sim.fresh_stock is not None else recipe,
         }
         sim.customers.append(customer)
         events.append(("customer_arrived", {

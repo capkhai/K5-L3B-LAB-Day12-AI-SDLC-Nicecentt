@@ -1,0 +1,34 @@
+{
+  "quan": {
+    "stock": [
+      {
+        "id": "I1",
+        "kind": "ca_loc",
+        "fresh": 30
+      },
+      {
+        "id": "I2",
+        "kind": "ca_loc",
+        "fresh": 80
+      }
+    ],
+    "customers": [
+      {
+        "id": "C1",
+        "table_id": "T1",
+        "dish_id": "ca_loc_nuong_trui",
+        "reserved": [
+          "I1"
+        ]
+      }
+    ],
+    "random_customers": false,
+    "player": {
+      "pos": [
+        2,
+        8
+      ]
+    },
+    "time_left_ticks": 1171
+  }
+}

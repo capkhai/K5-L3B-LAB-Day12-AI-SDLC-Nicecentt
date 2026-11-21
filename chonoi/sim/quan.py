@@ -7,6 +7,7 @@ Lát 4 (chur04): quan_service.py xử lý timer, bếp, bưng, phục vụ, ti�
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
 from . import quan_customers, quan_service
+from .quan_freshness import FreshStock
 
 TICK = 60.0
 
@@ -31,7 +32,13 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        self.fresh_stock = None
+        stock = inventory if inventory is not None else scenario.get("stock", [] if "freshness" in tuning else {})
+        if "freshness" in tuning:
+            self.fresh_stock = FreshStock(self, tuning, stock)
+            self.stock = self.fresh_stock.items
+        else:
+            self.stock = dict(stock)
         self.hand = dict(scenario["hand"]) if isinstance(scenario.get("hand"), dict) else scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -67,7 +74,8 @@ class QuanSim:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": self.fresh_stock.snapshot() if self.fresh_stock is not None else {
+                k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in sort_by_id(self.stoves)],
@@ -83,6 +91,8 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         quan_service.advance_timers(self)
+        if self.fresh_stock is not None:
+            self.fresh_stock.step(events)
         quan_service.ready_dishes(self, events)
         self._move(inp)
         if inp.pressed("interact"):

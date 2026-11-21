@@ -29,19 +29,22 @@ def prepare_customers(sim):
             value = c[key]
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise BadInput(f"customers.{c['id']}.{key}: cần số nguyên không âm")
-    available = dict(sim.stock)
-    for c in sorted(sim.customers, key=order_key):
-        if c["order_status"] == "reserved":
-            recipe = sim.menu[c["dish_id"]]["recipe"]
-            c.setdefault("reserved", dict(recipe))
-            if c["reserved"] != recipe or any(available.get(k, 0) < n for k, n in recipe.items()):
-                raise BadInput(f"customers.{c['id']}: giữ chỗ khác công thức hoặc quá tồn")
-            for k, n in recipe.items():
-                available[k] = available.get(k, 0) - n
-        else:
-            c.setdefault("reserved", {})
-            if c["reserved"]:
-                raise BadInput(f"customers.{c['id']}: đơn không reserved phải có phần giữ rỗng")
+    if sim.fresh_stock is not None:
+        sim.fresh_stock.prepare_reservations()
+    else:
+        available = dict(sim.stock)
+        for c in sorted(sim.customers, key=order_key):
+            if c["order_status"] == "reserved":
+                recipe = sim.menu[c["dish_id"]]["recipe"]
+                c.setdefault("reserved", dict(recipe))
+                if c["reserved"] != recipe or any(available.get(k, 0) < n for k, n in recipe.items()):
+                    raise BadInput(f"customers.{c['id']}: giữ chỗ khác công thức hoặc quá tồn")
+                for k, n in recipe.items():
+                    available[k] = available.get(k, 0) - n
+            else:
+                c.setdefault("reserved", {})
+                if c["reserved"]:
+                    raise BadInput(f"customers.{c['id']}: đơn không reserved phải có phần giữ rỗng")
     by_id = {c["id"]: c for c in sim.customers}
     assigned = {}
     for stove in sim.stoves:
@@ -59,9 +62,9 @@ def prepare_customers(sim):
               or (state == "ready" and stove["cook_ticks_left"])):
             raise BadInput(f"stoves.{stove['id']}: timer không khớp state")
         else:
-            _check_payload(stove["dish"], by_id, assigned)
+            _check_payload(stove["dish"], by_id, assigned, allow_zero=sim.fresh_stock is not None)
     if sim.hand is not None:
-        _check_payload(sim.hand, by_id, assigned)
+        _check_payload(sim.hand, by_id, assigned, allow_zero=sim.fresh_stock is not None)
     for c in sim.customers:
         status, state = c["order_status"], c["state"]
         if status not in ("reserved", "assigned", "unfulfillable", "served") or state not in ("waiting", "eating"):
@@ -71,7 +74,8 @@ def prepare_customers(sim):
                 raise BadInput(f"customers.{c['id']}: eating cần served và timer ăn dương")
             for key in ("base_price", "tip"):
                 value = c.get(key)
-                if isinstance(value, bool) or not isinstance(value, int) or value < (1 if key == "base_price" else 0):
+                minimum = 1 if key == "base_price" and sim.fresh_stock is None else 0
+                if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
                     raise BadInput(f"customers.{c['id']}.{key}: giá/boa chưa chốt hợp lệ")
         elif status == "served" or c["eat_ticks_left"]:
             raise BadInput(f"customers.{c['id']}: khách waiting không được served/đang ăn")
@@ -79,7 +83,7 @@ def prepare_customers(sim):
             raise BadInput(f"customers.{c['id']}: assigned cần đúng một món ở bếp hoặc tay")
 
 
-def _check_payload(dish, customers, assigned):
+def _check_payload(dish, customers, assigned, allow_zero=False):
     if not isinstance(dish, dict) or set(dish) != {"order_id", "dish_id", "base_price"}:
         raise BadInput("payload món phải có đúng order_id, dish_id, base_price")
     order_id = dish["order_id"]
@@ -89,7 +93,7 @@ def _check_payload(dish, customers, assigned):
     price = dish["base_price"]
     if (c["order_status"] != "assigned" or c["state"] != "waiting"
             or dish["dish_id"] != c["dish_id"] or isinstance(price, bool)
-            or not isinstance(price, int) or price <= 0 or order_id in assigned):
+            or not isinstance(price, int) or price < (0 if allow_zero else 1) or order_id in assigned):
         raise BadInput(f"món không khớp đơn assigned hoặc trùng món: {order_id}")
     assigned[order_id] = dish
 
@@ -128,11 +132,14 @@ def _burn_dish(sim, stove, events):
     data = _dish_event(stove)
     _reset_stove(stove)
     customer = next(c for c in sim.customers if c["id"] == data["order_id"])
-    customer.update(order_status="unfulfillable", reserved={})
-    available = available_stock(sim)
-    recipe = sim.menu[customer["dish_id"]]["recipe"]
-    if all(available.get(kind, 0) >= count for kind, count in recipe.items()):
-        customer.update(order_status="reserved", reserved=dict(recipe))
+    if sim.fresh_stock is not None:
+        sim.fresh_stock.reserve_again(customer)
+    else:
+        customer.update(order_status="unfulfillable", reserved={})
+        available = available_stock(sim)
+        recipe = sim.menu[customer["dish_id"]]["recipe"]
+        if all(available.get(kind, 0) >= count for kind, count in recipe.items()):
+            customer.update(order_status="reserved", reserved=dict(recipe))
     events.append(("dish_burnt", dict(data, order_status=customer["order_status"])))
 
 
@@ -173,16 +180,19 @@ def _interact_stove(sim, stove, events):
         if not orders:
             return
         customer = min(orders, key=order_key)
-        recipe = customer["reserved"]
-        # Validation của fixture/lát khách bảo đảm phần giữ có đủ tồn vật lý.
-        if any(sim.stock.get(kind, 0) < count for kind, count in recipe.items()):
-            raise BadInput("nguyên liệu giữ chỗ không còn trong kho")
-        items = [kind for kind in sorted(recipe) for _ in range(recipe[kind])]
-        for kind, count in recipe.items():
-            sim.stock[kind] -= count
         dish_id = customer["dish_id"]
-        price = sim.menu[dish_id]["price"]
-        customer.update(order_status="assigned", reserved={})
+        if sim.fresh_stock is not None:
+            items, price = sim.fresh_stock.consume(customer)
+        else:
+            recipe = customer["reserved"]
+            # Validation của fixture/lát khách bảo đảm phần giữ có đủ tồn vật lý.
+            if any(sim.stock.get(kind, 0) < count for kind, count in recipe.items()):
+                raise BadInput("nguyên liệu giữ chỗ không còn trong kho")
+            items = [kind for kind in sorted(recipe) for _ in range(recipe[kind])]
+            for kind, count in recipe.items():
+                sim.stock[kind] -= count
+            price = sim.menu[dish_id]["price"]
+        customer.update(order_status="assigned", reserved=[] if sim.fresh_stock is not None else {})
         stove.update(state="cooking", dish={"order_id": customer["id"], "dish_id": dish_id, "base_price": price},
                      cook_ticks_left=int(round(sim.menu[dish_id]["cook_s"] * sim.tick_hz)), ready_ticks=0)
         events.append(("cook_started", dict(_dish_event(stove), items=items, base_price=price)))
@@ -209,7 +219,7 @@ def _serve(sim, table, events):
 
 def discard_order(sim, customer):
     """Dùng khi lát khách hủy đơn: nhả giữ thô, hủy món, không hoàn hàng đã nấu."""
-    customer["reserved"] = {}
+    customer["reserved"] = [] if sim.fresh_stock is not None else {}
     for stove in sort_by_id(sim.stoves):
         if stove["dish"] is not None and stove["dish"]["order_id"] == customer["id"]:
             _reset_stove(stove)

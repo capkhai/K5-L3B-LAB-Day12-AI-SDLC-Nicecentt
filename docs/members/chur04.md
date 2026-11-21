@@ -13,3 +13,9 @@
 - AI sai: tool proof ban đầu thiếu repo root trong sys.path; đã sửa và chạy lại đủ suite/CLI.
 - Bàn giao: đã ghi điểm nối Nhung/Đạt trong clarify. Chưa có review chéo, commit/push/tag mới; giữ nhánh `2A202603873_VuVanChu`.
 - Điều học được: tách tick ngoài khỏi gameplay, giữ ngữ cảnh event khi đổi pha, tách cấp đã mua khỏi cấp đang áp dụng.
+
+## Phase 3 — lát 3 Quán
+
+- Thực hiện với Codex: kho cá thể, hao tươi, giữ lại bằng id, giá chốt theo giả định người dùng cho phép, tích hợp burn và JSONL. [Bằng chứng](../proof/phase-3/chur04/README.md).
+- 32 test mới; 136 test toàn repo đạt. Đã kiểm ngưỡng 30 và lỗi đổi số chính xác sang float làm hiển thị lại 30; giữ đủ precision khi xuất JSONL.
+- Chưa ghép file/day/Gather/HUD v1.2. Chưa có human review; người dùng tự commit, không có commit/push/tag tự động.

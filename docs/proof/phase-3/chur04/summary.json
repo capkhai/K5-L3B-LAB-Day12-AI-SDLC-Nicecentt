@@ -1,0 +1,100 @@
+{
+  "scope": "Phase 3 slice 3 QuanSim and runner API; file CLI/day/gather migration not included",
+  "tests_total": 136,
+  "new_quan_tests": 32,
+  "deterministic": true,
+  "sha256": "93471dddd7369d08a8473bb7e2e63070a634097beb9ff56281fd25fae1a689d3",
+  "end": {
+    "type": "end",
+    "ticks": 1171,
+    "sim_tick": 1171,
+    "mode": "quan",
+    "state": "finished",
+    "reason": "time",
+    "money": 56,
+    "earned": 56,
+    "reputation": 3.2,
+    "score": 356
+  },
+  "events": [
+    {
+      "tick": 1,
+      "name": "spoiled",
+      "data": {
+        "item_id": "I1",
+        "kind": "ca_loc",
+        "location": "stock"
+      }
+    },
+    {
+      "tick": 1,
+      "name": "cook_started",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui",
+        "items": [
+          {
+            "id": "I2",
+            "kind": "ca_loc",
+            "fresh": 79.99583333333334
+          }
+        ],
+        "base_price": 47
+      }
+    },
+    {
+      "tick": 361,
+      "name": "dish_ready",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui"
+      }
+    },
+    {
+      "tick": 361,
+      "name": "dish_picked",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui"
+      }
+    },
+    {
+      "tick": 571,
+      "name": "served",
+      "data": {
+        "order_id": "C1",
+        "table_id": "T1",
+        "dish_id": "ca_loc_nuong_trui",
+        "patience_ticks_left": 3029,
+        "base_price": 47,
+        "tip": 9
+      }
+    },
+    {
+      "tick": 1171,
+      "name": "paid",
+      "data": {
+        "order_id": "C1",
+        "table_id": "T1",
+        "base_price": 47,
+        "tip": 9,
+        "amount": 56,
+        "reason": "finished_eating"
+      }
+    },
+    {
+      "tick": 1171,
+      "name": "quan_end",
+      "data": {
+        "reason": "time",
+        "money": 56,
+        "earned": 56,
+        "shift_earned": 56,
+        "reputation": 3.2
+      }
+    }
+  ]
+}

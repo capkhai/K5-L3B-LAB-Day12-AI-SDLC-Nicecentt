@@ -152,12 +152,18 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
-    kinds = {kind for dish in tuning["menu"].values() for kind in dish["recipe"]}
+    from .sim.quan_freshness import ingredient_kinds, validate_stock
+
+    fresh_mode = "freshness" in tuning
+    kinds = ingredient_kinds(tuning)
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"], kinds)
+        if fresh_mode:
+            validate_stock(b["stock"], kinds)
+        else:
+            validate_items(b["stock"], kinds)
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -169,7 +175,7 @@ def _validate_quan(b, tuning):
     if "random_customers" in b and not isinstance(b["random_customers"], bool):
         raise BadInput("random_customers phải là boolean")
     if "hand" in b and b["hand"] is not None:
-        _check_dish_payload("quan.hand", b["hand"], tuning["menu"])
+        _check_dish_payload("quan.hand", b["hand"], tuning["menu"], allow_zero=fresh_mode)
     if "reputation" in b:
         r = b["reputation"]
         q = tuning["quan"]
@@ -190,7 +196,7 @@ def _validate_quan(b, tuning):
             if key in stove:
                 _nonneg_int(f"stoves.{stove['id']}.{key}", stove[key])
         if "dish" in stove and stove["dish"] is not None:
-            _check_dish_payload(f"stoves.{stove['id']}.dish", stove["dish"], menu)
+            _check_dish_payload(f"stoves.{stove['id']}.dish", stove["dish"], menu, allow_zero=fresh_mode)
     for table in b.get("tables", []):
         extra = set(table) - {"id", "pos"}
         if extra:
@@ -201,7 +207,7 @@ def _validate_quan(b, tuning):
         "id", "table_id", "dish_id", "state", "order_tick", "order_status",
         "patience_ticks_left", "eat_ticks_left", "reserved", "base_price", "tip",
     }
-    stock = validate_items(b.get("stock", {}), kinds)
+    stock = validate_stock(b.get("stock", []), kinds) if fresh_mode else validate_items(b.get("stock", {}), kinds)
     reserved_totals = {}
     for c in b.get("customers", []):
         extra = set(c) - customer_keys
@@ -219,6 +225,13 @@ def _validate_quan(b, tuning):
             if key in c:
                 _nonneg_int(f"customers.{c['id']}.{key}", c[key])
         if "reserved" in c:
+            if fresh_mode:
+                reserved = c["reserved"]
+                if (not isinstance(reserved, list) or any(not isinstance(ident, str) or not ident for ident in reserved)
+                        or len(reserved) != len(set(reserved))):
+                    raise BadInput(f"customers.{c['id']}.reserved: cần mảng id khác rỗng, không trùng")
+                # Kiểm công thức/liên kết trên stock thực trong QuanSim trước khi mở output.
+                continue
             if not isinstance(c["reserved"], dict):
                 raise BadInput(f"customers.{c['id']}.reserved phải là object")
             try:
@@ -233,7 +246,7 @@ def _validate_quan(b, tuning):
         raise BadInput("hai khách cùng bàn")
 
 
-def _check_dish_payload(name, dish, menu):
+def _check_dish_payload(name, dish, menu, allow_zero=False):
     if not isinstance(dish, dict) or set(dish) != {"order_id", "dish_id", "base_price"}:
         raise BadInput(f"{name}: payload món phải có đúng order_id, dish_id, base_price")
     if not isinstance(dish["order_id"], str) or not dish["order_id"]:
@@ -241,5 +254,5 @@ def _check_dish_payload(name, dish, menu):
     if not isinstance(dish["dish_id"], str) or dish["dish_id"] not in menu:
         raise BadInput(f"{name}.dish_id không có trong menu")
     price = dish["base_price"]
-    if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
-        raise BadInput(f"{name}.base_price phải là số nguyên dương")
+    if isinstance(price, bool) or not isinstance(price, int) or price < (0 if allow_zero else 1):
+        raise BadInput(f"{name}.base_price không hợp lệ")
