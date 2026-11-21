@@ -15,6 +15,7 @@ Mục 1.2, 4.3, 4.4, 4.5 của `docs/prd-phase-2.md`:
 
 import math
 
+from ..freshness import public_item
 from ..ids import id_key, sort_by_id
 
 
@@ -158,7 +159,8 @@ def step_monsters(sim, events: list) -> bool:
     sim.hp = max(0, sim.hp - 1)
     loss_ratio = float(cfg.get("loss_ratio", 0.5))
     drop_count = math.floor(len(sim.hold) * loss_ratio)
-    lost = [sim.hold.pop() for _ in range(drop_count)]
+    raw_lost = [sim.hold.pop() for _ in range(drop_count)]
+    lost = [public_item(it) if isinstance(it, dict) else it for it in raw_lost]
     sim.invuln_ticks = int(cfg.get("invuln_ticks", 90))
 
     dx = attacker["pos"][0] - sim.pos[0]
