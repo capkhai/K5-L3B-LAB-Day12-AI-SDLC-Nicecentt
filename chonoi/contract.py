@@ -24,8 +24,8 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
     version = c.get("contract_version")
-    if version not in ("1.0", "1.1"):
-        raise BadInput("contract_version phải là 1.0 hoặc 1.1")
+    if version not in ("1.0", "1.1", "1.2"):
+        raise BadInput("contract_version phải là 1.0, 1.1 hoặc 1.2")
     extensions = c.get("extensions", [])
     if not isinstance(extensions, list) or any(not isinstance(code, str) or not code for code in extensions):
         raise BadInput("extensions phải là mảng mã mở rộng (chuỗi khác rỗng)")
@@ -126,7 +126,8 @@ def validate_tuning(t, version="1.0", extensions=()):
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
-    _validate_gather(g, v11=version == "1.1")
+    v11_plus = version in ("1.1", "1.2")
+    _validate_gather(g, v11=v11_plus)
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))
@@ -171,6 +172,14 @@ def validate_tuning(t, version="1.0", extensions=()):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
-    if version == "1.1":
+    if version == "1.2":
+        fr = t.get("freshness")
+        if not isinstance(fr, dict):
+            raise BadInput("contract v1.2 cần tuning.freshness")
+        _between("freshness.initial", fr.get("initial"), 0.001, 100)
+        _between("freshness.gather_decay_per_s", fr.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", fr.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", fr.get("spoiled_below"), 0, 100)
+    if v11_plus:
         from .sim.day_config import validate_day_scenario
         validate_day_scenario({}, t)

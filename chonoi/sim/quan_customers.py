@@ -1,14 +1,56 @@
-"""Phase 1, lát 3 (nhungvo631-stack): lịch sinh khách, chọn món đủ kho khả dụng, giữ chỗ và no_dish.
+"""Phase 1–3, lát 3: lịch sinh khách, chọn món đủ kho khả dụng, giữ chỗ (v1.1 đếm / v1.2 cá thể) và no_dish.
 
 Gọi ở cuối QuanSim.step() khi còn giờ (không sinh ở bước đóng ca).
 Timer và xử lý khách rời bàn/thanh toán do quan_service đảm nhận một nơi duy nhất.
 """
 
-from ..ids import sort_by_id
+from ..freshness import is_spoiled, item_frac
+from ..ids import id_key, sort_by_id
+
+
+def reserved_item_ids(sim) -> set:
+    """Tập id cá thể đang bị các đơn `reserved` giữ chỗ (v1.2)."""
+    return {
+        item_id
+        for customer in sim.customers
+        if customer.get("order_status") == "reserved"
+        for item_id in (customer.get("reserved") or [])
+    }
+
+
+def pick_items_for_recipe(sim, recipe: dict, extra_claimed: set = None):
+    """Chọn cá thể chưa ươn, chưa bị giữ, tươi nhất (hòa theo id) cho công thức v1.2. Trả list id hoặc None."""
+    spoiled_below = sim.freshness_cfg.get("spoiled_below", 30)
+    claimed = reserved_item_ids(sim)
+    if extra_claimed:
+        claimed |= extra_claimed
+    by_kind = {}
+    for it in sim.stock:
+        if it["id"] in claimed or is_spoiled(it, spoiled_below):
+            continue
+        by_kind.setdefault(it["kind"], []).append(it)
+    picked = []
+    for kind, count in sorted(recipe.items()):
+        cands = by_kind.get(kind, [])
+        if len(cands) < count:
+            return None
+        cands.sort(key=lambda it: (-item_frac(it), id_key(it["id"])))
+        picked.extend(it["id"] for it in cands[:count])
+    picked.sort(key=id_key)
+    return picked
 
 
 def available_stock(sim) -> dict:
-    """Tồn khả dụng = tồn vật lý trừ tổng phần giữ chỗ của các đơn reserved."""
+    """Tồn khả dụng theo loại = tồn vật lý chưa ươn trừ phần giữ chỗ của các đơn reserved."""
+    if getattr(sim, "v12", False):
+        spoiled_below = sim.freshness_cfg.get("spoiled_below", 30)
+        claimed = reserved_item_ids(sim)
+        available = {}
+        for it in sim.stock:
+            if it["id"] in claimed or is_spoiled(it, spoiled_below):
+                continue
+            available[it["kind"]] = available.get(it["kind"], 0) + 1
+        return available
     available = dict(sim.stock)
     for customer in sim.customers:
         if customer.get("order_status") == "reserved":
@@ -62,6 +104,7 @@ class CustomerSpawner:
         table_id = free_tables[0]
         customer_id = sim.ids.new("C")
         recipe = dict(sim.menu[dish_id]["recipe"])
+        reserved = pick_items_for_recipe(sim, recipe) if getattr(sim, "v12", False) else recipe
         customer = {
             "id": customer_id,
             "table_id": table_id,
@@ -71,7 +114,7 @@ class CustomerSpawner:
             "state": "waiting",
             "patience_ticks_left": sim.patience_max_ticks,
             "eat_ticks_left": 0,
-            "reserved": recipe,
+            "reserved": reserved,
         }
         sim.customers.append(customer)
         events.append(("customer_arrived", {

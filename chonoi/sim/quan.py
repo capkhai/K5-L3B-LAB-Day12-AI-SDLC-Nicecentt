@@ -4,6 +4,7 @@ Lát 3 (nhungvo631-stack): quan_customers.py xử lý lịch sinh khách, chọn
 Lát 4 (chur04): quan_service.py xử lý timer, bếp, bưng, phục vụ, tiền và dọn đơn.
 """
 
+from ..freshness import is_v12, make_item, public_item
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
 from . import quan_customers, quan_service
@@ -18,6 +19,8 @@ class QuanSim:
     def __init__(self, tuning, scenario, streams, ids, inventory=None):
         t = tuning["quan"]
         self.t = t
+        self.v12 = is_v12(tuning)
+        self.freshness_cfg = tuning.get("freshness") or {}
         self.menu = tuning["menu"]
         self.tick_hz = tuning["tick_hz"]
         self.patience_max_ticks = int(round(t["patience_s"] * self.tick_hz))
@@ -31,7 +34,13 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        if self.v12:
+            raw_stock = inventory if inventory is not None else scenario.get("stock", [])
+            self.stock = [make_item(it["id"], it["kind"], it["fresh"]) for it in raw_stock]
+            for it in self.stock:
+                ids.reserve(it["id"])
+        else:
+            self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = dict(scenario["hand"]) if isinstance(scenario.get("hand"), dict) else scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -65,15 +74,25 @@ class QuanSim:
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        stock_snap = (
+            [public_item(it) for it in sort_by_id(self.stock)]
+            if self.v12
+            else {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
+        )
         return {
-            "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
-            "hand": self.hand,
-            "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
+            "player": {"pos": list(self.pos)},
+            "stock": stock_snap,
+            "hand": dict(self.hand) if isinstance(self.hand, dict) else self.hand,
+            "stoves": [{k: (dict(s[k]) if k == "dish" and isinstance(s.get(k), dict) else s.get(k))
+                        for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in sort_by_id(self.stoves)],
-            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])}
+            "tables": [{"id": tb["id"], "pos": list(tb["pos"]), "customer_id": occupied.get(tb["id"])}
                        for tb in sort_by_id(self.tables)],
-            "customers": sort_by_id(self.customers),
+            "customers": [
+                {k: (list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v)
+                 for k, v in c.items()}
+                for c in sort_by_id(self.customers)
+            ],
         }
 
     def step(self, inp):
@@ -83,6 +102,8 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         quan_service.advance_timers(self)
+        if self.v12:
+            quan_service.decay_stock_and_recheck_reservations(self, events)
         quan_service.ready_dishes(self, events)
         self._move(inp)
         if inp.pressed("interact"):

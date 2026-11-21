@@ -25,6 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .contract import load_contract
 from .errors import BadInput
+from .freshness import is_v12
 from .inputs import LiveInputs
 from .inventory import KINDS_P2, read_inventory
 from .runner import Session
@@ -172,7 +173,7 @@ class LiveGame:
         self.pending_upgrades = {"oxygen": 0, "hp": 0}
         self._shop_cfg = _parse_shop_catalog(self.tuning)
         self.shop_ticks_left = 0
-        self.last_gather_inventory = {"items": {}}
+        self.last_gather_inventory = {"items": [] if is_v12(self.tuning) else {}}
         self.last_gather_reason = None
         self.last_day_summary = None
         self.carry_money = 0
@@ -225,7 +226,7 @@ class LiveGame:
         sess.sim.reputation = self.carry_reputation
         return sess
 
-    def _build_day_quan_session(self, day: int, inv_items: dict) -> Session:
+    def _build_day_quan_session(self, day: int, inv_items) -> Session:
         day_tuning = self._tuned_for_day(day)
         plan = _day_plan_for(day_tuning, day)
         # Trong chế độ day, lọc thực đơn theo day_plan của Ngày hiện tại
@@ -233,7 +234,8 @@ class LiveGame:
         if filtered_menu:
             day_tuning["menu"] = filtered_menu
         self.tuning = day_tuning
-        sess = Session("quan", day_tuning, {}, self._seed + day * 202, inventory=dict(inv_items))
+        inv_copy = copy.deepcopy(inv_items) if isinstance(inv_items, list) else dict(inv_items)
+        sess = Session("quan", day_tuning, {}, self._seed + day * 202, inventory=inv_copy)
         sess.sim.money = self.carry_money
         sess.sim.earned = self.carry_earned
         sess.sim.reputation = self.carry_reputation
@@ -648,7 +650,9 @@ def main(argv=None) -> int:
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
-        tuning = load_contract()["tuning"]
+        contract = load_contract()
+        version = contract.get("contract_version")
+        tuning = contract["tuning"]
         inventory_kinds = KINDS_P2
         if a.extra_content:
             with open(EXTRA_CONTENT_PATH, encoding="utf-8") as content_file:
@@ -675,7 +679,7 @@ def main(argv=None) -> int:
                 + tuple(node["kind"] for node in extra_gather["nodes"])
             ))
         scenario = load_scenario(a.scenario, a.mode, tuning) if a.scenario else {}
-        inventory = read_inventory(a.inventory, inventory_kinds) if a.inventory else None
+        inventory = read_inventory(a.inventory, inventory_kinds, version=version) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=a.days)

@@ -125,7 +125,10 @@ class GatherSlice1Test(unittest.TestCase):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [20, 5], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                "hold": ["ca_loc", "bong_sung"],
+                "hold": [
+                    {"id": "I1", "kind": "ca_loc", "fresh": 100},
+                    {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                ],
                 "time_left_ticks": 1,
             }})
             inv = w.path("inv.json")
@@ -136,14 +139,17 @@ class GatherSlice1Test(unittest.TestCase):
             names = [e["name"] for e in events(rows)]
             self.assertEqual(names, ["choke", "faint", "gather_end"])
             faint_ev = events(rows, "faint")[0]
-            self.assertEqual(faint_ev["data"], {"cause": "choke", "lost": ["bong_sung", "ca_loc"], "hp": 0})
+            self.assertEqual(faint_ev["data"]["cause"], "choke")
+            self.assertEqual(faint_ev["data"]["hp"], 0)
+            self.assertEqual([(it["id"], it["kind"]) for it in faint_ev["data"]["lost"]],
+                             [("I2", "bong_sung"), ("I1", "ca_loc")])
             end_ev = events(rows, "gather_end")[0]
             self.assertEqual(end_ev["data"]["reason"], "fainted")
-            self.assertEqual(end_ev["data"]["inventory"], {"items": {}})
+            self.assertEqual(end_ev["data"]["inventory"], {"items": []})
             self.assertEqual(rows[-1]["reason"], "fainted")
             self.assertEqual(snapshots(rows)[-1]["hold"], [])
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
 
 class GatherSlice2Test(unittest.TestCase):
@@ -167,7 +173,7 @@ class GatherSlice2Test(unittest.TestCase):
             ge = events(rows, "gather")
             self.assertEqual(len(ge), 1)
             self.assertEqual(ge[0]["data"], {"node_id": "N2", "kind": "bong_dien_dien", "amount": 1})
-            self.assertEqual(snapshots(rows)[-1]["hold"], ["bong_dien_dien"])
+            self.assertEqual([it["kind"] for it in snapshots(rows)[-1]["hold"]], ["bong_dien_dien"])
             regrown = events(rows, "node_regrown")
             self.assertEqual(len(regrown), 1)
             self.assertEqual(regrown[0]["data"]["node_id"], "N2")
@@ -188,7 +194,7 @@ class GatherSlice2Test(unittest.TestCase):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [12, 0]},
-                "hold": ["ca_loc"] * cap,
+                "hold": [{"id": f"I{i + 1}", "kind": "ca_loc", "fresh": 100} for i in range(cap)],
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]}],
                 "random_fish": False,
             }})
@@ -247,7 +253,7 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(len(caught), 2)
             self.assertEqual(caught[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "yield": 3})
             self.assertEqual(caught[1]["data"], {"fish_id": "F2", "kind": "ca_loc", "yield": 1})
-            self.assertEqual(snapshots(rows)[-1]["hold"], ["ca_linh", "ca_linh", "ca_linh", "ca_loc"])
+            self.assertEqual([it["kind"] for it in snapshots(rows)[-1]["hold"]], ["ca_linh", "ca_linh", "ca_linh", "ca_loc"])
             self.assertEqual(snapshots(rows)[-1]["fish"], [])
 
             sc_surf = write_json(w.path("sc_surf.json"), {"gather": {
@@ -263,7 +269,7 @@ class GatherSlice2Test(unittest.TestCase):
             # Giỏ còn 2 chỗ, bắt ca_linh (yield=3) -> phải đủ chỗ cho cả đàn: hold_full, giữ cá, không cooldown
             sc_part = write_json(w.path("sc_part.json"), {"gather": {
                 "player": {"pos": [15, 5]},
-                "hold": ["ca_loc"] * (cap - 2),
+                "hold": [{"id": f"I{i + 1}", "kind": "ca_loc", "fresh": 100} for i in range(cap - 2)],
                 "fish": [
                     {"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
                     {"id": "F2", "kind": "ca_loc", "pos": [15.5, 5]},
@@ -280,7 +286,7 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(len(hf), 1)
             self.assertEqual(hf[0]["data"], {"action": "catch", "fish_id": "F1", "required": 3, "free": 2})
             last_snap = snapshots(rows_p)[-1]
-            self.assertEqual(last_snap["hold"], ["ca_loc"] * (cap - 2))
+            self.assertEqual([it["kind"] for it in last_snap["hold"]], ["ca_loc"] * (cap - 2))
             self.assertEqual(len(last_snap["fish"]), 2)
             self.assertEqual(last_snap["player"]["catch_cd_ticks"], 0)
 

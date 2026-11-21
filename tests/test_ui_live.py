@@ -8,6 +8,7 @@ import os
 import unittest
 
 from chonoi.contract import load_contract
+from chonoi.freshness import make_item
 from chonoi.live import DAY_INTRO_TICKS, EXTRA_CONTENT_PATH, LiveGame, SHOP_DEFAULT_TICKS, WEB_DIR
 
 
@@ -35,7 +36,7 @@ class LiveUiContractTest(unittest.TestCase):
         for dish_id in (*contract["menu"].keys(), *extra["menu"].keys()):
             self.assertIn(dish_id, self.html)
         for token in ("day_intro", "evening_intro", "day_result", "shop", "summary",
-                      "THỦY QUÁI!", "HẾT HƠI!", "drawMonster", "pauseModal"):
+                      "THỦY QUÁI!", "HẾT HƠI!", "HÀNG ƯƠN", "drawMonster", "pauseModal"):
             self.assertIn(token, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
         self.assertIn("/assets/ut-sen-swim.png", self.html)
@@ -61,10 +62,16 @@ class LiveUiContractTest(unittest.TestCase):
         self.assertEqual(st_reset["tick"], 0)
         self.assertEqual(st_reset["player"]["pos"], st0["player"]["pos"])
 
-        q = LiveGame("quan", tuning, {}, seed=1, inventory={"ca_loc": 2, "bong_sung": 2})
+        q_inv = [
+            {"id": "I1", "kind": "ca_loc", "fresh": 100},
+            {"id": "I2", "kind": "ca_loc", "fresh": 95},
+            {"id": "I3", "kind": "bong_sung", "fresh": 90},
+            {"id": "I4", "kind": "bong_sung", "fresh": 85},
+        ]
+        q = LiveGame("quan", tuning, {}, seed=1, inventory=q_inv)
         qs0 = json.loads(q.state_json())
         self.assertEqual(qs0["mode"], "quan")
-        self.assertEqual(qs0["stock"], {"bong_sung": 2, "ca_loc": 2})
+        self.assertEqual(qs0["stock"], q_inv)
         q.set_input({"move": [-1, 0], "interact": False, "catch": False})
         for _ in range(10):
             q._tick_once()
@@ -118,13 +125,14 @@ class LiveUiContractTest(unittest.TestCase):
         self.assertEqual(st["mode"], "gather")
         oxy_day1 = st["player"]["oxygen_max_ticks"]
 
-        # 3. Cập bến ngay tại dock -> chuyển sang EveningIntro với kho mang về
-        g.session.sim.hold.append("ca_loc")
+        # 3. Cập bến ngay tại dock -> chuyển sang EveningIntro với kho mang về (v1.2 cá thể)
+        g.session.sim.hold.append(make_item("I1", "ca_loc", 100))
         g.set_input({"interact": True})
         g._tick_once()
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "evening_intro")
-        self.assertEqual(st["last_gather_inventory"], {"items": {"ca_loc": 1}})
+        self.assertEqual(len(st["last_gather_inventory"]["items"]), 1)
+        self.assertEqual(st["last_gather_inventory"]["items"][0]["kind"], "ca_loc")
 
         # 4. Bỏ qua EveningIntro -> Quan -> hết giờ -> DayResult
         g.perform_action({"action": "skip_intro"})

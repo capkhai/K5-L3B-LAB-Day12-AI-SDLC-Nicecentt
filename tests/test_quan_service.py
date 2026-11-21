@@ -28,6 +28,7 @@ def payload(order="C1", dish=DISH, price=60):
 class Service(unittest.TestCase):
     def setUp(self):
         self.tuning = copy.deepcopy(load_contract()["tuning"])
+        self.tuning.pop("freshness", None)
 
     def session(self, scenario=None):
         block = {"random_customers": False, "stock": {"ca_loc": 1},
@@ -282,11 +283,18 @@ class HeadlessService(unittest.TestCase):
     def test_real_headless_service_flow_is_byte_deterministic(self):
         proof = ROOT / "docs" / "proof" / "phase-1"
         with Workdir() as w:
+            sc_v12 = write_json(w.path("sc-v12.json"), {"quan": {
+                "player": {"pos": [2, 8]},
+                "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
+                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}],
+                "random_customers": False,
+                "time_left_ticks": 1171,
+            }})
             outputs = []
             for i in range(2):
                 out = w.path(f"service-{i}.jsonl")
                 result = self.run_cli("--mode", "quan", "--seed", "7", "--ticks", "1200",
-                    "--scenario", str(proof / "chur04-service-scenario.json"),
+                    "--scenario", sc_v12,
                     "--inputs", str(proof / "chur04-service-inputs.json"), "--snapshot-every", "360", "--out", out)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 outputs.append(Path(out).read_bytes())
@@ -295,7 +303,8 @@ class HeadlessService(unittest.TestCase):
             self.assertEqual([(r["tick"], r["name"]) for r in events(rows)], [
                 (1, "cook_started"), (361, "dish_ready"), (361, "dish_picked"),
                 (571, "served"), (1171, "paid"), (1171, "quan_end")])
-            self.assertEqual((rows[-1]["money"], rows[-1]["score"], rows[-1]["reason"]), (72, 372, "time"))
+            # v1.2: ở tick 1 I1 hao 1/240 -> base_price = floor(60 * (100 - 1/240)/100) = 59, tip = floor(59*0.2) = 11 -> 70
+            self.assertEqual((rows[-1]["money"], rows[-1]["score"], rows[-1]["reason"]), (70, 370, "time"))
 
     def test_bad_payload_exits_2_before_output_is_written(self):
         with Workdir() as w:

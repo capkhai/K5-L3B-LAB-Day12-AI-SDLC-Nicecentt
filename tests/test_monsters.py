@@ -21,7 +21,7 @@ def _idle():
 class GatherMonstersTest(unittest.TestCase):
     def test_contract_v11_has_core_phase2_values(self):
         contract = load_contract()
-        self.assertEqual(contract["contract_version"], "1.1")
+        self.assertIn(contract["contract_version"], ("1.1", "1.2"))
         tuning = contract["tuning"]
         self.assertEqual(len(tuning["quan"]["stoves"]), 2)
         self.assertEqual(len(tuning["quan"]["tables"]), 4)
@@ -33,6 +33,11 @@ class GatherMonstersTest(unittest.TestCase):
         with Workdir() as w:
             p = write_json(w.path("inv.json"), {"items": {"ca_keo": 2, "keo_neo": 1}})
             self.assertEqual(read_inventory(p), {"ca_keo": 2, "keo_neo": 1})
+            p12 = write_json(w.path("inv12.json"), {"items": [
+                {"id": "I1", "kind": "ca_keo", "fresh": 100},
+                {"id": "I2", "kind": "keo_neo", "fresh": 90},
+            ]})
+            self.assertEqual([it["kind"] for it in read_inventory(p12, version="1.2")], ["ca_keo", "keo_neo"])
 
     def test_day_spawns_m1_on_day1_and_m1_m2_on_day3(self):
         contract = load_contract()
@@ -101,7 +106,13 @@ class GatherMonstersTest(unittest.TestCase):
             # 5 món trong giỏ -> mất floor(5/2) = 2 món theo LIFO (nhặt sau mất trước)
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [60, 20], "hp": 3},
-                "hold": ["ca_loc", "bong_sung", "ca_linh", "ca_keo", "keo_neo"],
+                "hold": [
+                    {"id": "I1", "kind": "ca_loc", "fresh": 100},
+                    {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                    {"id": "I3", "kind": "ca_linh", "fresh": 100},
+                    {"id": "I4", "kind": "ca_keo", "fresh": 100},
+                    {"id": "I5", "kind": "keo_neo", "fresh": 100},
+                ],
                 "monsters": [{"id": "M1", "kind": "ca_sau", "pos": [61, 20], "waypoints": [[60, 20], [64, 20]]}],
                 "random_fish": False,
             }})
@@ -112,14 +123,13 @@ class GatherMonstersTest(unittest.TestCase):
             hits = events(rows, "monster_hit")
             self.assertEqual(len(hits), 1)
             self.assertEqual(hits[0]["tick"], 1)
-            self.assertEqual(hits[0]["data"], {
-                "monster_id": "M1",
-                "hp": 2,
-                "lost": ["keo_neo", "ca_keo"],
-                "pos": [60, 20],
-            })
+            self.assertEqual(hits[0]["data"]["monster_id"], "M1")
+            self.assertEqual(hits[0]["data"]["hp"], 2)
+            self.assertEqual(hits[0]["data"]["pos"], [60, 20])
+            self.assertEqual([(it["id"], it["kind"]) for it in hits[0]["data"]["lost"]],
+                             [("I5", "keo_neo"), ("I4", "ca_keo")])
             snaps = {r["tick"]: r for r in snapshots(rows)}
-            self.assertEqual(snaps[1]["hold"], ["ca_loc", "bong_sung", "ca_linh"])
+            self.assertEqual([it["kind"] for it in snaps[1]["hold"]], ["ca_loc", "bong_sung", "ca_linh"])
             self.assertEqual(snaps[1]["player"]["invuln_ticks"], 90)
             m1 = snaps[1]["monsters"][0]
             self.assertEqual(m1["state"], "recoil")
@@ -134,7 +144,11 @@ class GatherMonstersTest(unittest.TestCase):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [60, 20], "hp": 1},
-                "hold": ["ca_loc", "bong_sung", "ca_keo"],
+                "hold": [
+                    {"id": "I1", "kind": "ca_loc", "fresh": 100},
+                    {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                    {"id": "I3", "kind": "ca_keo", "fresh": 100},
+                ],
                 "monsters": [{"id": "M1", "kind": "ca_sau", "pos": [60, 20], "waypoints": [[60, 20], [64, 20]]}],
                 "random_fish": False,
             }})
@@ -145,16 +159,17 @@ class GatherMonstersTest(unittest.TestCase):
             rows = read_jsonl(w.path("o.jsonl"))
             names = [e["name"] for e in events(rows)]
             self.assertEqual(names, ["monster_hit", "faint", "gather_end"])
-            # 3 món -> hit mất floor(3/2)=1 (ca_keo), faint mất 2 món còn lại theo LIFO (bong_sung, ca_loc)
-            self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"], ["ca_keo"])
-            self.assertEqual(events(rows, "faint")[0]["data"], {
-                "cause": "monster",
-                "lost": ["bong_sung", "ca_loc"],
-                "hp": 0,
-            })
+            # 3 món -> hit mất floor(3/2)=1 (I3 ca_keo), faint mất 2 món còn lại theo LIFO (I2 bong_sung, I1 ca_loc)
+            self.assertEqual([(it["id"], it["kind"]) for it in events(rows, "monster_hit")[0]["data"]["lost"]],
+                             [("I3", "ca_keo")])
+            faint = events(rows, "faint")[0]["data"]
+            self.assertEqual(faint["cause"], "monster")
+            self.assertEqual(faint["hp"], 0)
+            self.assertEqual([(it["id"], it["kind"]) for it in faint["lost"]],
+                             [("I2", "bong_sung"), ("I1", "ca_loc")])
             self.assertEqual(snapshots(rows)[-1]["monsters"][0]["recoil_dir"], [1, 0])
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_invalid_monster_scenario_exits_2(self):
         with Workdir() as w:

@@ -68,8 +68,8 @@ class Contract(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", bad, "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out), "lỗi đầu vào phải thoát TRƯỚC khi ghi đầu ra")
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "-1", "--out", out)[0], 2)
-            # Contract v1.1 mở nút `attack` (bỏ qua nếu chưa bật weapon); chỉ giữ `attack` lỗi ở v1.0.
-            bad_buttons = ("jump",) if contract_version() == "1.1" else ("jump", "attack")
+            # Contract v1.1/v1.2 mở nút `attack` (bỏ qua nếu chưa bật weapon); chỉ giữ `attack` lỗi ở v1.0.
+            bad_buttons = ("jump",) if contract_version() in ("1.1", "1.2") else ("jump", "attack")
             for button in bad_buttons:
                 unk = write_json(w.path("unk.json"), frames({"tick": 0, button: True}))
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
@@ -78,8 +78,8 @@ class Contract(unittest.TestCase):
     def test_con_03_old_and_future_modes_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            # Contract v1.1 hỗ trợ `--mode day`; giữ từ chối `river` và chỉ từ chối `day` ở v1.0.
-            bad_modes = ("river",) if contract_version() == "1.1" else ("river", "day")
+            # Contract v1.1/v1.2 hỗ trợ `--mode day`; giữ từ chối `river` và chỉ từ chối `day` ở v1.0.
+            bad_modes = ("river",) if contract_version() in ("1.1", "1.2") else ("river", "day")
             for mode in bad_modes:
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
@@ -191,7 +191,9 @@ class Movement(unittest.TestCase):
 
     def test_time_ends_gather_and_keeps_hold(self):
         with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc"], "time_left_ticks": 3,
+            v12 = contract_version() == "1.2"
+            hold = [{"id": "I1", "kind": "ca_loc", "fresh": 100}] if v12 else ["ca_loc"]
+            sc = write_json(w.path("sc.json"), {"gather": {"hold": hold, "time_left_ticks": 3,
                                                            "player": {"pos": [50, 10]}}})
             inv = w.path("inv.json")
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "100", "--scenario", sc,
@@ -204,14 +206,28 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                saved = json.load(f)
+            if v12:
+                self.assertEqual(len(saved["items"]), 1)
+                self.assertEqual(saved["items"][0]["id"], "I1")
+                self.assertEqual(saved["items"][0]["kind"], "ca_loc")
+                self.assertTrue(close(saved["items"][0]["fresh"], 99.975, 1e-6), saved)
+            else:
+                self.assertEqual(saved, {"items": {"ca_loc": 1}})
 
 
 class Integration(unittest.TestCase):
     def test_inv_01_gather_writes_inventory_quan_reads_it(self):
-        """Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung."""
+        """Ví dụ smoke test bàn giao kho (PRD-0 mục G / v1.2 TICKET-03): cập bến tick 0, quán đọc đúng kho."""
         with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
+            v12 = contract_version() == "1.2"
+            hold = (
+                [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                 {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                 {"id": "I3", "kind": "bong_sung", "fresh": 100}]
+                if v12 else ["ca_loc", "bong_sung", "bong_sung"]
+            )
+            sc = write_json(w.path("sc.json"), {"gather": {"hold": hold}})
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
             inv = w.path("inv.json")
             code, err = run_headless("--mode", "gather", "--seed", "42", "--ticks", "1", "--scenario", sc,
@@ -219,14 +235,19 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            if v12:
+                self.assertEqual([it["id"] for it in saved["items"]], ["I1", "I2", "I3"])
+                self.assertEqual([it["kind"] for it in saved["items"]], ["ca_loc", "bong_sung", "bong_sung"])
+                self.assertTrue(all(close(it["fresh"], 100 - 0.5 / 60, 1e-6) for it in saved["items"]))
+            else:
+                self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
             self.assertEqual(end["inventory"], saved)
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

@@ -62,7 +62,7 @@ class Units(unittest.TestCase):
 
     def test_session_steps_gather_and_dock(self):
         tuning = load_contract()["tuning"]
-        s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
+        s = Session("gather", tuning, {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}, 1)
         self.assertEqual(s.snapshot()["tick"], 0)
         li = LiveInputs()
         self.assertEqual(s.step(li.advance()), [])
@@ -76,7 +76,11 @@ class Units(unittest.TestCase):
     def test_quan_customer_reservation_and_patience(self):
         tuning = load_contract()["tuning"]
         scenario = {
-            "stock": {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1},
+            "stock": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 100},
+                {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                {"id": "I3", "kind": "bong_sung", "fresh": 100},
+            ],
             "random_customers": False,
             "customers": [{
                 "id": "C1",
@@ -84,7 +88,7 @@ class Units(unittest.TestCase):
                 "dish_id": "ca_loc_nuong_trui",
                 "state": "waiting",
                 "patience_ticks_left": 1,
-                "reserved": {"ca_loc": 1},
+                "reserved": ["I1"],
             }],
         }
         s = Session("quan", tuning, scenario, 1)
@@ -99,7 +103,7 @@ class Units(unittest.TestCase):
     def test_quan_customer_spawn_and_no_dish(self):
         tuning = load_contract()["tuning"]
         first_tick = tuning["quan"]["first_customer_tick"]
-        s = Session("quan", tuning, {"stock": {"ca_loc": 1}}, 1)
+        s = Session("quan", tuning, {"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}, 1)
         li = LiveInputs()
         all_events = []
         for _ in range(first_tick):
@@ -109,7 +113,7 @@ class Units(unittest.TestCase):
         self.assertEqual(arrived[0]["data"]["dish_id"], "ca_loc_nuong_trui")
         self.assertEqual(len(s.snapshot()["customers"]), 1)
 
-        s_empty = Session("quan", tuning, {"stock": {}}, 1)
+        s_empty = Session("quan", tuning, {"stock": []}, 1)
         empty_events = []
         for _ in range(first_tick):
             empty_events.extend(s_empty.step(li.advance()))

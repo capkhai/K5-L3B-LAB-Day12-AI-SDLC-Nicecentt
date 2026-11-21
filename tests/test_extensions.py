@@ -300,7 +300,7 @@ class BurnExtensionRealContractTest(unittest.TestCase):
             # ready_ticks = 1199 -> sau bước 1 thành 1200 -> vẫn bưng được (dish_picked)
             sc_ok = write_json(w.path("ok.json"), {"quan": {
                 "player": {"pos": [2, 8]},
-                "stock": {},
+                "stock": [],
                 "random_customers": False,
                 "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned"}],
                 "stoves": [{"id": "B1", "state": "ready", "ready_ticks": 1199,
@@ -312,10 +312,10 @@ class BurnExtensionRealContractTest(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertEqual([e["name"] for e in events(read_jsonl(w.path("ok.jsonl")))], ["dish_picked"])
 
-            # ready_ticks = 1200 -> sau bước 1 thành 1201 (> 1200) -> cháy món, giữ lại được nếu kho còn hàng
+            # ready_ticks = 1200 -> sau bước 1 thành 1201 (> 1200) -> cháy món, giữ lại được nếu kho còn hàng chưa ươn
             sc_burn = write_json(w.path("burn.json"), {"quan": {
                 "player": {"pos": [2, 8]},
-                "stock": {"ca_loc": 1},
+                "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
                 "random_customers": False,
                 "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned"}],
                 "stoves": [{"id": "B1", "state": "ready", "ready_ticks": 1200,

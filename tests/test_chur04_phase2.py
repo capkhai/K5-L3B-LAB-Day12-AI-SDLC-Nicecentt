@@ -30,6 +30,7 @@ def phase2_contract():
         else:
             contract["tuning"][key] = data
     contract["contract_version"] = "1.1"
+    contract["tuning"].pop("freshness", None)
     return contract
 
 

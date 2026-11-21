@@ -7,6 +7,8 @@ với phase_tick=0, chỉ chạy gameplay từ bước sau. UI tự trình bày 
 import copy
 
 from ..errors import BadInput
+from ..freshness import is_v12, public_item
+from ..ids import sort_by_id
 from .day_config import plans, validate_day_scenario
 from .gather import GatherSim
 from .quan import QuanSim
@@ -19,6 +21,7 @@ class DaySim:
         if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 5:
             raise BadInput("days phải là số nguyên trong [1, 5]")
         self.tuning = tuning
+        self.v12 = is_v12(tuning)
         self.scenario = validate_day_scenario(scenario, tuning)
         self.rng, self.ids = streams, ids
         self.days = days
@@ -34,7 +37,7 @@ class DaySim:
         self.day = 1
         self.days_completed = 0
         self.done, self.reason = False, None
-        self.stock = {}
+        self.stock = [] if self.v12 else {}
         self.initial_events = []
         self._start_day(self.initial_events)
 
@@ -48,15 +51,22 @@ class DaySim:
     def _start_day(self, events):
         self.phase, self.phase_tick = "gather", 0
         self.active_upgrades = dict(self.upgrades)
-        self.stock = {}
+        self.stock = [] if self.v12 else {}
         self.day_plan = copy.deepcopy(self.plans[self.day])
         effective = copy.deepcopy(self.tuning)
         for name, field in (("oxygen", "oxygen_max_s"), ("hp", "hp_max")):
             level = self.active_upgrades.get(name, 0)
             if level:
                 effective["gather"][field] = effective["shop"]["upgrades"][name][level - 1][field]
-        # Ngữ cảnh day được truyền trước khi dựng quái (M2 từ Ngày 3).
-        self.current = GatherSim(effective, copy.deepcopy(self.scenario.get("gather", {})), self.rng, self.ids, day=self.day)
+        # Ngữ cảnh day được truyền trước khi dựng quái (M2 từ Ngày 3); Ngày 2+ cấp id mới cho hold.
+        self.current = GatherSim(
+            effective,
+            copy.deepcopy(self.scenario.get("gather", {})),
+            self.rng,
+            self.ids,
+            day=self.day,
+            reallocate_hold_ids=(self.day > 1),
+        )
         self._carry_into_phase()
         events.extend([self._event("day_start"), self._event("day_plan", {
             "dishes": dict(self.day_plan["dishes"]), "ingredients": dict(self.day_plan["ingredients"])}),
@@ -72,7 +82,7 @@ class DaySim:
         effective = copy.deepcopy(self.tuning)
         effective["menu"] = {dish: effective["menu"][dish] for dish in self.day_plan["dishes"]}
         block = copy.deepcopy(self.scenario.get("quan", {}))
-        block["stock"] = dict(self.stock)
+        block["stock"] = copy.deepcopy(self.stock) if self.v12 else dict(self.stock)
         block["reputation"] = self.reputation
         # Kiểm khách/bếp/món trên kho thực khi mở quán, như mục 4.3.
         validate_phase_block(block, "quan", self.tuning)
@@ -82,13 +92,21 @@ class DaySim:
         events.append(self._event("phase_start"))
 
     def _start_shop(self, events):
-        self.stock = {k: v for k, v in self.current.stock.items() if v > 0}
+        if self.v12:
+            self.stock = [public_item(it) for it in sort_by_id(self.current.stock)]
+        else:
+            self.stock = {k: v for k, v in self.current.stock.items() if v > 0}
         self.phase, self.phase_tick = "shop", 0
         self.shop_left = self.tuning["shop"]["max_ticks"]
         events.append(self._event("phase_start"))
 
     def snapshot(self):
-        detail = self.current.snapshot() if self.phase != "shop" else {"stock": dict(sorted(self.stock.items()))}
+        if self.phase != "shop":
+            detail = self.current.snapshot()
+        elif self.v12:
+            detail = {"stock": copy.deepcopy(self.stock)}
+        else:
+            detail = {"stock": dict(sorted(self.stock.items()))}
         return {**detail, "day": self.day, "day_plan": copy.deepcopy(self.day_plan),
                 "upgrades": dict(self.upgrades), "active_upgrades": dict(self.active_upgrades)}
 

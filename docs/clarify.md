@@ -49,3 +49,15 @@ Nguồn: [toàn văn ticket người dùng cung cấp](prd-phase-2.md). Các quy
 - **Nhung/Integrator:** giữ game.contract.json và inventory.py theo phân công; manifest ở working tree hiện vẫn 1.0. Fixture 1.1 chỉ nằm trong tests/fixtures và bản sao kiểm chứng, không thay cấu hình chung. Cần ghép fish_initial=8, 6 nguyên liệu/6 món, 2 bếp/4 bàn, day_plan/shop, validation monsters/age_ticks và engine Gather trước khi xác nhận chạy day mặc định.
 - Có sửa nhỏ `contract.py` để đọc cả v1.0/v1.1 và kiểm dữ liệu day/shop/burn; `scenario.py` thêm điểm nối `validate_phase_block` và route day, suy nguyên liệu hợp lệ từ dữ liệu menu thay vì khóa 4 loại P1. Đây là phụ thuộc cần thiết để CLI/day chạy được, không thay schema kho hoặc hoàn thành hộ validation Gather v1.1 của Nhung.
 - Bằng chứng và các giới hạn: [chur04 Phase 2](proof/phase-2/chur04/README.md). Giữ nhánh cá nhân hiện có `2A202603873_VuVanChu`; không tạo nhánh mới, commit, push hay tag.
+
+## Phase 3 — Đối chiếu TICKET-03 “Mùa Nước Nổi” (21/11/2026)
+
+Nguồn: [docs/prd-phase-3.md](prd-phase-3.md) và [ADR 0001](adr/0001-phase3-item-freshness-v12.md).
+
+| Vấn đề | Kết luận / căn cứ |
+|---|---|
+| Độ chính xác ngưỡng `fresh < 30` và `floor` giá | Dùng `fractions.Fraction` trong `chonoi/freshness.py` (tự nhận bội `1/240` sai khác `< 1e-9` khi đọc lại JSON) và giữ đủ độ chính xác cho khóa `fresh` trong `chonoi/jsonl.py` để không sai nhánh ở ngưỡng 30. |
+| Thứ tự xử lý nhiều đơn cùng có cá thể giữ vừa ươn | Phát hết `spoiled` theo `id` tự nhiên trước; sau đó duyệt các đơn bị ảnh hưởng theo `(order_tick, id_key(table_id))`, mỗi đơn nhả toàn bộ phần giữ và thử giữ lại đúng 1 lần (tươi nhất trước, hòa theo `id`), không đủ chuyển `unfulfillable`. |
+| ID cá thể qua các Ngày trong `--mode day` | Ngày 1 giữ nguyên `id` trong `gather.hold`; từ Ngày 2 trở đi cấp `id` mới (`I...`) tăng liên tục xuyên pha và Ngày (`reallocate_hold_ids=True`). |
+| Dòng nước lũ (`current`) khi ca kết thúc sớm hoặc chạm `--ticks` | `docked`/`time`/`fainted` phát `current_end(reason="phase_end")` trước `faint` (nếu có) và trước `gather_end`. Bước bắt đầu dòng trùng bước cuối ca vẫn cộng lực trước khi kết thúc. Giới hạn `--ticks` của CLI chỉ cắt mô phỏng, giữ nguyên `current.ticks_left`. |
+

@@ -8,7 +8,8 @@ def _clean(v):
         r = round(v, 3)
         return 0.0 if r == 0 else r  # tránh -0.0
     if isinstance(v, dict):
-        return {k: _clean(x) for k, x in v.items()}
+        # Giữ đủ độ chính xác cho `fresh` để không đổi nhánh tại ngưỡng 30 khi đọc lại.
+        return {k: (x if k == "fresh" and isinstance(x, (int, float)) else _clean(x)) for k, x in v.items()}
     if isinstance(v, (list, tuple)):
         return [_clean(x) for x in v]
     return v

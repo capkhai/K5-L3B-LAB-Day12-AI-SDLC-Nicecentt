@@ -1091,9 +1091,36 @@ function renderStars(rep, repMax) {
 }
 function computeAvailableStock(stock, customers) {
   const reserved = {};
+  const spoiled = {};
+  const minFresh = {};
+  if (Array.isArray(stock)) {
+    const reservedIds = new Set();
+    for (const c of customers || []) {
+      if ((c.order_status === "reserved" || c.order_status === undefined) && Array.isArray(c.reserved)) {
+        for (const id of c.reserved) reservedIds.add(id);
+      }
+    }
+    const available = {};
+    for (const it of stock) {
+      if (!it || typeof it !== "object") continue;
+      const k = it.kind;
+      const f = typeof it.fresh === "number" ? it.fresh : 100;
+      if (f < 30) {
+        spoiled[k] = (spoiled[k] || 0) + 1;
+        continue;
+      }
+      if (minFresh[k] === undefined || f < minFresh[k]) minFresh[k] = f;
+      if (reservedIds.has(it.id)) {
+        reserved[k] = (reserved[k] || 0) + 1;
+      } else {
+        available[k] = (available[k] || 0) + 1;
+      }
+    }
+    return { available, reserved, spoiled, minFresh };
+  }
   for (const c of customers || []) {
     // Theo quan_customers.py: chỉ trừ phần giữ chỗ của đơn còn ở trạng thái reserved
-    if ((c.order_status === "reserved" || c.order_status === undefined) && c.reserved && typeof c.reserved === "object") {
+    if ((c.order_status === "reserved" || c.order_status === undefined) && c.reserved && typeof c.reserved === "object" && !Array.isArray(c.reserved)) {
       for (const [k, v] of Object.entries(c.reserved)) {
         if (v > 0) reserved[k] = (reserved[k] || 0) + v;
       }
@@ -1104,7 +1131,7 @@ function computeAvailableStock(stock, customers) {
   for (const k of allKeys) {
     available[k] = Math.max(0, ((stock && stock[k]) || 0) - (reserved[k] || 0));
   }
-  return { available, reserved };
+  return { available, reserved, spoiled, minFresh };
 }
 function canCookWith(recipe, stock) {
   if (!recipe || !stock) return false;
@@ -1244,26 +1271,49 @@ function updateHudDom() {
       lastBottomKey = bottomKey;
       const isFull = holdCount >= cap;
       const counts = {};
-      for (const k of hold) counts[k] = (counts[k] || 0) + 1;
+      const spoiledCounts = {};
+      const minFreshByKind = {};
+      let totalSpoiled = 0;
+      for (const entry of hold) {
+        const k = typeof entry === "object" && entry ? entry.kind : entry;
+        const f = typeof entry === "object" && entry && typeof entry.fresh === "number" ? entry.fresh : null;
+        counts[k] = (counts[k] || 0) + 1;
+        if (f !== null) {
+          if (f < 30) {
+            spoiledCounts[k] = (spoiledCounts[k] || 0) + 1;
+            totalSpoiled += 1;
+          }
+          if (minFreshByKind[k] === undefined || f < minFreshByKind[k]) minFreshByKind[k] = f;
+        }
+      }
       let slotsHtml = "";
       for (let i = 0; i < cap; i++) {
-        const item = hold[i];
-        const isTop = item && i === hold.length - 1;
-        if (item) {
-          const km = kindMeta(item);
-          slotsHtml += `<div class="slot filled ${isTop ? "top-lifo" : ""}" title="#${i + 1}: ${km.name}" style="background:${km.color}2e;border-color:${km.color};"><span class="slot-dot" style="background:${km.color};"></span></div>`;
+        const entry = hold[i];
+        const isTop = entry && i === hold.length - 1;
+        if (entry) {
+          const k = typeof entry === "object" ? entry.kind : entry;
+          const f = typeof entry === "object" && typeof entry.fresh === "number" ? entry.fresh : null;
+          const isSpoiled = f !== null && f < 30;
+          const km = kindMeta(k);
+          const freshLabel = f !== null ? ` · tươi ${Math.floor(f)}%${isSpoiled ? " (ƯƠN)" : ""}` : "";
+          const borderCol = isSpoiled ? "#ef5350" : km.color;
+          slotsHtml += `<div class="slot filled ${isTop ? "top-lifo" : ""}" title="#${i + 1}: ${km.name}${freshLabel}" style="background:${isSpoiled ? "#ef535033" : km.color + "2e"};border-color:${borderCol};"><span class="slot-dot" style="background:${borderCol};"></span></div>`;
         } else {
           slotsHtml += `<div class="slot"></div>`;
         }
       }
       const holdChips = Object.keys(counts).sort().map((k) => {
         const km = kindMeta(k);
-        return `<span class="chip"><span class="chip-swatch" style="background:${km.color};"></span>${km.short} <b>×${counts[k]}</b></span>`;
+        const mf = minFreshByKind[k];
+        const sp = spoiledCounts[k] || 0;
+        const freshBadge = mf !== undefined ? ` <span class="chip-sub" style="color:${mf < 30 ? "#ef5350" : mf < 60 ? "#ffa726" : "#81c784"};">${Math.floor(mf)}%</span>` : "";
+        const spBadge = sp > 0 ? ` <span class="badge danger">ƯƠN ×${sp}</span>` : "";
+        return `<span class="chip"><span class="chip-swatch" style="background:${km.color};"></span>${km.short} <b>×${counts[k]}</b>${freshBadge}${spBadge}</span>`;
       }).join("");
       const needKeys = Object.keys(needed).sort();
       const matuChips = needKeys.map((k) => {
         const km = kindMeta(k);
-        const got = counts[k] || 0, req = needed[k];
+        const got = (counts[k] || 0) - (spoiledCounts[k] || 0), req = needed[k];
         const ok = got >= req;
         return `<span class="chip ${ok ? "done" : ""}">${km.short} <b>${got}/${req}</b>${ok ? " ✓" : ""}</span>`;
       }).join("");
@@ -1273,6 +1323,7 @@ function updateHudDom() {
           <div class="hold-header">
             <span><b>Giỏ:</b> ${holdCount}/${cap}</span>
             ${isFull ? `<span class="badge danger">ĐẦY GIỎ · VỀ BẾN (E)</span>` : ""}
+            ${totalSpoiled > 0 ? `<span class="badge danger">⚠ ${totalSpoiled} HÀNG ƯƠN</span>` : ""}
             <div class="chips">${holdChips || `<span class="chip-sub">(Trống)</span>`}</div>
             ${matuChips ? `<span style="color:var(--accent);font-weight:700;">Má Tư:</span><div class="chips">${matuChips}</div>` : ""}
           </div>
@@ -1318,14 +1369,18 @@ function updateHudDom() {
       `;
     }
 
-    // Bottom: Kho khả dụng (= tồn vật lý - reserved) + Thực đơn động từ snap.menu
-    const stock = snap.stock || {};
-    const { available, reserved } = computeAvailableStock(stock, customers);
+    // Bottom: Kho khả dụng (= tồn vật lý chưa ươn - reserved) + Độ tươi / Hàng ươn (v1.2)
+    const stock = snap.stock || [];
+    const { available, reserved, spoiled, minFresh } = computeAvailableStock(stock, customers);
     const liveMenu = snap.menu || {};
-    const bottomKey = JSON.stringify(["quan", stock, available, reserved, Object.keys(liveMenu)]);
+    const bottomKey = JSON.stringify(["quan", stock, available, reserved, spoiled, Object.keys(liveMenu)]);
     if (bottomKey !== lastBottomKey) {
       lastBottomKey = bottomKey;
-      const presentKinds = new Set([...Object.keys(stock), ...Object.keys(reserved)]);
+      const presentKinds = new Set([
+        ...(Array.isArray(stock) ? stock.map((it) => it.kind) : Object.keys(stock)),
+        ...Object.keys(reserved),
+        ...Object.keys(spoiled),
+      ]);
       for (const m of Object.values(liveMenu)) {
         if (m && m.recipe) Object.keys(m.recipe).forEach((k) => presentKinds.add(k));
       }
@@ -1337,9 +1392,13 @@ function updateHudDom() {
         const km = kindMeta(k);
         const avail = available[k] || 0;
         const res = reserved[k] || 0;
-        return `<span class="chip ${avail === 0 && res === 0 ? "zero" : ""}" title="${km.name}: khả dụng ${avail}, giữ chỗ ${res}">
+        const sp = spoiled[k] || 0;
+        const mf = minFresh[k];
+        const freshTag = mf !== undefined ? `<span class="chip-sub" style="color:${mf < 60 ? "#ffa726" : "#81c784"};"> ${Math.floor(mf)}%</span>` : "";
+        const spTag = sp > 0 ? `<span class="chip-sub" style="color:#ef5350;"> (ƯƠN ${sp})</span>` : "";
+        return `<span class="chip ${avail === 0 && res === 0 ? "zero" : ""}" title="${km.name}: khả dụng ${avail}, giữ chỗ ${res}, ươn ${sp}">
           <span class="chip-swatch" style="background:${km.color};"></span>
-          ${km.short} <b>${avail}</b>${res > 0 ? `<span class="chip-sub">(+${res} giữ)</span>` : ""}
+          ${km.short} <b>${avail}</b>${res > 0 ? `<span class="chip-sub">(+${res} giữ)</span>` : ""}${freshTag}${spTag}
         </span>`;
       }).join("");
 
@@ -1442,13 +1501,33 @@ function updateScreenOverlay() {
       </div>
     `;
   } else if (effectiveScreen === "evening_intro") {
-    const items = (snap.last_gather_inventory && snap.last_gather_inventory.items) || {};
+    const items = (snap.last_gather_inventory && snap.last_gather_inventory.items) || [];
     const sec = Math.max(0, Math.ceil((snap.screen_ticks_left || 0) / 60));
     const frac = Math.max(0, Math.min(100, ((snap.screen_ticks_left || 0) / 210) * 100));
-    const invHtml = Object.keys(items).sort().map((k) => {
-      const km = kindMeta(k);
-      return `<span class="chip"><span class="chip-swatch" style="background:${km.color};"></span>${km.name} <b>×${items[k]}</b></span>`;
-    }).join("");
+    let invHtml = "";
+    if (Array.isArray(items)) {
+      const grp = {};
+      for (const it of items) {
+        const k = it.kind;
+        if (!grp[k]) grp[k] = { total: 0, spoiled: 0, minFresh: 100 };
+        grp[k].total += 1;
+        if (typeof it.fresh === "number") {
+          if (it.fresh < 30) grp[k].spoiled += 1;
+          if (it.fresh < grp[k].minFresh) grp[k].minFresh = it.fresh;
+        }
+      }
+      invHtml = Object.keys(grp).sort().map((k) => {
+        const km = kindMeta(k);
+        const g = grp[k];
+        const sp = g.spoiled > 0 ? ` · <b style="color:#ef5350;">ƯƠN ${g.spoiled}</b>` : "";
+        return `<span class="chip"><span class="chip-swatch" style="background:${km.color};"></span>${km.name} <b>×${g.total}</b> <span class="chip-sub">(${Math.floor(g.minFresh)}%)</span>${sp}</span>`;
+      }).join("");
+    } else {
+      invHtml = Object.keys(items).sort().map((k) => {
+        const km = kindMeta(k);
+        return `<span class="chip"><span class="chip-swatch" style="background:${km.color};"></span>${km.name} <b>×${items[k]}</b></span>`;
+      }).join("");
+    }
     screenCardEl.innerHTML = `
       <h2 class="screen-title"><span>🌇 Chuyển sang Buổi Tối — Mở Quán (Ngày ${snap.day || 1})</span><span class="badge quan">${sec}s</span></h2>
       <p class="screen-sub">${REASON_LABEL[snap.last_gather_reason] || "Hoàn thành buổi sáng — chuẩn bị đón khách!"}</p>

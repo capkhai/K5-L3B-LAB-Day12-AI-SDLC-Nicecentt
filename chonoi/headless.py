@@ -61,13 +61,14 @@ def main(argv=None) -> int:
         if len(set(paths)) != len(paths):
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
-        v11 = contract.get("contract_version") == "1.1"
-        if a.mode == "day" and not v11:
-            raise BadInput("--mode day cần contract v1.1 và tuning.day_plan/shop từ Integrator")
+        version = contract.get("contract_version")
+        v11_plus = version in ("1.1", "1.2")
+        if a.mode == "day" and not v11_plus:
+            raise BadInput("--mode day cần contract v1.1/v1.2 và tuning.day_plan/shop từ Integrator")
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        frames = load_frames(a.inputs, buttons=BUTTONS_V11 if v11 else BUTTONS_V10)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        frames = load_frames(a.inputs, buttons=BUTTONS_V11 if v11_plus else BUTTONS_V10)
+        inventory = read_inventory(a.inventory, version=version) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
