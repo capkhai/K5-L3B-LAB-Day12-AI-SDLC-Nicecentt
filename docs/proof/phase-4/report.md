@@ -3,7 +3,7 @@
 ## 1. Regression toàn hệ thống (Phase 1–4) + Contract Check
 
 ```text
-Ran 143 tests in 31.756s
+Ran 144 tests in 26.155s
 
 OK
 MODE: Contract command
@@ -17,17 +17,17 @@ RESULT: PASS
 Lệnh: `python3 -m chonoi.bench --seed 42 --duration 30 --out docs/proof/phase-4/bench.json`
 
 ```json
-{"avg_fps":680.55,"p1_low_fps":304.91,"frames":20417,"measured_s":30.001,"load_ms":10.07}
+{"avg_fps":930.22,"p1_low_fps":438.81,"frames":27907,"measured_s":30.0,"load_ms":18.81}
 ```
 
-- Cảnh đo: buổi sáng lõi (`gather`), độ tươi v1.2+, cá bơi, Cá Sấu Năm Chèo `M1` & Rắn Hổ Mây `M3`, sóng mặt nước, bọt nước và HUD trên framebuffer RGB `1280×720`; Út Sen đứng yên ở bến `[2, 0]`, làm nóng 3s + đo 30s.
+- Cảnh đo mới: buổi sáng lõi (`gather`), độ tươi v1.2+, cá bơi, Cá Sấu Năm Chèo `M1` & Rắn Hổ Mây `M3`, sóng mặt nước, bọt nước và HUD trên framebuffer RGB `1280×720`; Út Sen đứng yên ở bến `[2, 0]`, làm nóng 3s + đo 30s.
 
 ## 3. Artifact Soak 10 Ngày (`docs/proof/phase-4/soak.json`)
 
 Lệnh: `python3 -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json`
 
 ```json
-{"days":10,"days_completed":10,"crashes":0,"results":[{"day":1,"earned":43,"reputation":3.2,"score":343},{"day":2,"earned":43,"reputation":3.2,"score":343},{"day":3,"earned":86,"reputation":3.4,"score":386},{"day":4,"earned":129,"reputation":3.6,"score":429},{"day":5,"earned":129,"reputation":3.6,"score":429},{"day":6,"earned":172,"reputation":3.8,"score":472},{"day":7,"earned":172,"reputation":3.8,"score":472},{"day":8,"earned":215,"reputation":4.0,"score":615},{"day":9,"earned":258,"reputation":4.2,"score":658},{"day":10,"earned":258,"reputation":4.2,"score":658}],"duration_s":4.68}
+{"days":10,"days_completed":10,"crashes":0,"results":[{"day":1,"earned":43,"reputation":3.2,"score":343},{"day":2,"earned":43,"reputation":3.2,"score":343},{"day":3,"earned":86,"reputation":3.4,"score":386},{"day":4,"earned":129,"reputation":3.6,"score":429},{"day":5,"earned":129,"reputation":3.6,"score":429},{"day":6,"earned":172,"reputation":3.8,"score":472},{"day":7,"earned":172,"reputation":3.8,"score":472},{"day":8,"earned":215,"reputation":4.0,"score":615},{"day":9,"earned":258,"reputation":4.2,"score":658},{"day":10,"earned":258,"reputation":4.2,"score":658}],"duration_s":6.876}
 ```
 
 - Đã xác minh hai lần chạy độc lập trong `tests/test_phase4_v13.py` cho cùng `days_completed=10`, `crashes=0` và `results` giống hệt nhau.
