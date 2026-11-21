@@ -1,5 +1,6 @@
 {
   "contract_version": "1.1",
+  "extensions": ["burn", "snake", "current"],
   "team": "Nicecentt",
   "team_size": 6,
   "build_cmd": "true",
@@ -68,12 +69,30 @@
             "hit_radius": 1.5,
             "recoil_ticks": 60,
             "recoil_dist": 2.0
+          },
+          "ran": {
+            "patrol_speed": 1.0,
+            "chase_speed": 3.5,
+            "detect_radius": 8.0,
+            "exit_radius": 16.0,
+            "depths": [8, 20],
+            "hit_radius": 1.5,
+            "recoil_ticks": 60,
+            "recoil_dist": 2.0
           }
         },
         "spawns": [
           {"id": "M1", "kind": "ca_sau", "pos": [60, 24], "waypoints": [[60, 24], [64, 24]], "from_day": 1},
-          {"id": "M2", "kind": "ca_sau", "pos": [85, 18], "waypoints": [[85, 18], [89, 18]], "from_day": 3}
+          {"id": "M2", "kind": "ca_sau", "pos": [85, 18], "waypoints": [[85, 18], [89, 18]], "from_day": 3},
+          {"id": "M3", "kind": "ran", "pos": [72, 14], "waypoints": [[72, 14], [76, 14]], "from_day": 1}
         ]
+      },
+      "current": {
+        "interval_ticks": 1800,
+        "duration_ticks": 480,
+        "warning_ticks": 120,
+        "min_depth": 10,
+        "speed": 1.5
       }
     },
     "quan": {
@@ -97,7 +116,7 @@
       "customer_interval_s": 15,
       "patience_s": 60,
       "eat_s": 10,
-      "burn_s": null,
+      "burn_s": 20,
       "carry_limit": 1,
       "tip_rate": 0.2,
       "tip_min_patience_ratio": 0.5,

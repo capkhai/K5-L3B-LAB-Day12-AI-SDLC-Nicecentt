@@ -31,6 +31,17 @@ Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/
 
 Bản trình duyệt có thêm cá kèo, cá rô đồng, kèo nèo và rau muống, cùng ba công thức cá kèo kho tộ, canh chua cá rô kèo nèo và rau muống xào. Dữ liệu nằm trong `chonoi/extra_content.json`. Bật bằng `python -m chonoi.live --mode gather --extra-content` hoặc dùng `--mode quan` để nạp thực đơn mở rộng.
 
+## Mở rộng đã hoàn thành (`extensions`)
+
+Nhóm **Nicecentt** (6 thành viên — yêu cầu tối thiểu 2 mở rộng) đã hoàn thành **3 mở rộng**, khai mã tại gốc [`game.contract.json`](game.contract.json) (`"extensions": ["burn", "snake", "current"]`):
+
+1. **`current` — Dòng nước lũ (Phase 3):** Lịch chu kỳ `1800 * k` tick, cảnh báo trước 120 tick (`current_warning`), chảy 480 tick (`current_start`), cộng lực `1.5 m/s` theo trục `x` khi độ sâu đầu bước `d >= 10` (chặn mép, không cộng vào `player.vel`), kết thúc `current_end(elapsed)` ở `t + 480` hoặc `current_end(phase_end)` trước `faint`/`gather_end` khi ca kết thúc sớm. Hỗ trợ `gather.random_current` và `gather.current_direction` trong scenario.
+2. **`snake` — Rắn Hổ Mây (`M3`, Phase 2):** Xuất hiện từ Ngày 1 ở `[72, 14] ↔ [76, 14]`, `d ∈ [8, 20]`, tuần tra `1.0 m/s`, đuổi `3.5 m/s` trong `<= 8 m` khi `d >= 8`, rời đuổi khi `> 16 m` hoặc `d < 8`, dùng chung luật va chạm/LIFO/recoil.
+3. **`burn` — Cháy món (Phase 2):** `quan.burn_s: 20` (`1200` tick). Đúng `1200` tick vẫn bưng được; từ tick `1201` phát `dish_burnt`, trả bếp về `idle`, không hoàn nguyên liệu và thử giữ chỗ lại ngay (`reserved` nếu còn hàng, `unfulfillable` nếu thiếu).
+
+- Test tự động: [`tests/test_extensions.py`](tests/test_extensions.py) và [`tests/test_chur04_phase2.py`](tests/test_chur04_phase2.py) (`Quan11`).
+- Bằng chứng chi tiết: [`docs/proof/phase-3/extensions.md`](docs/proof/phase-3/extensions.md).
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |

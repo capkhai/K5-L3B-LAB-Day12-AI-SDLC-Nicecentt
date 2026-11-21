@@ -146,9 +146,26 @@ def validate_tuning(t, version="1.0", extensions=()):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        if version != "1.1" or "burn" not in extensions:
-            raise BadInput("burn_s hữu hạn cần contract v1.1 và extensions chứa burn")
+        if version not in ("1.1", "1.2") or "burn" not in extensions:
+            raise BadInput("burn_s hữu hạn cần contract v1.1/v1.2 và extensions chứa burn")
         _between("quan.burn_s", q["burn_s"], 0.1, 600)
+    if g.get("current") is not None:
+        if "current" not in extensions:
+            raise BadInput("tuning.gather.current cần extensions chứa current")
+        cur = g["current"]
+        if not isinstance(cur, dict):
+            raise BadInput("tuning.gather.current phải là object")
+        _int_between("gather.current.interval_ticks", cur.get("interval_ticks"), 1, 100_000)
+        _int_between("gather.current.duration_ticks", cur.get("duration_ticks"), 1, 100_000)
+        _int_between("gather.current.warning_ticks", cur.get("warning_ticks"), 0, cur["interval_ticks"] - 1)
+        _between("gather.current.min_depth", cur.get("min_depth"), 0, g["bounds"]["d"][1])
+        _between("gather.current.speed", cur.get("speed"), 0.1, 20)
+    monsters = g.get("monsters", {})
+    if "ran" in monsters.get("species", {}):
+        if "snake" not in extensions:
+            raise BadInput("tuning.gather.monsters.species.ran cần extensions chứa snake")
+        if not any(sp.get("id") == "M3" and sp.get("kind") == "ran" for sp in monsters.get("spawns", [])):
+            raise BadInput("tuning.gather.monsters.species.ran cần M3 (ran) trong spawns")
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
