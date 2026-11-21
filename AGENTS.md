@@ -86,3 +86,19 @@
 - Hỗ trợ QA kiểm tra Test Contract và determinism.
 - Thu thập tiến độ qua docs/standup.md.
 - Không tự đánh dấu công việc của người khác là hoàn thành.
+
+## Phase 2–3 — Quy ước Contract v1.2 & Mở rộng (`extensions`)
+
+### 1. Lệnh kiểm chứng nhanh (Windows PowerShell)
+- Toàn bộ unit + integration test (140 test):
+  `$env:PYTHONPATH = "tests;."; python -m unittest tests/test_phase3_v12.py tests/test_extensions.py tests/test_gather_v12.py tests/test_gather.py tests/test_monsters.py tests/test_chur04_phase2.py tests/test_quan_service.py tests/test_smoke_p1.py tests/test_ui_live.py tests/test_python_starter_units.py tests/test_team_check.py`
+- Kiểm tra Contract & determinism: `python .agents/skills/check-contract/check_contract.py`
+- Chạy trọn 1 Ngày headless (22.200 tick): `python -m chonoi.headless --mode day --days 1 --seed 7 --ticks 22200 --out day.jsonl`
+
+### 2. Quy ước Contract v1.2 (Độ tươi & kho cá thể)
+- `game.contract.json` đang ở `contract_version: "1.2"` với khối `tuning.freshness` (`100 / 0.5 / 0.25 / 30`) và `"extensions": ["burn", "snake", "current"]`.
+- File kho (`--inventory`, `--inventory-out`), `gather.hold`, `quan.stock` và Shop `stock` dùng **mảng cá thể** `[{"id": "I1", "kind": "...", "fresh": ...}]`; kho rỗng là `{"items": []}`. File kho đếm v1.0/v1.1 phải trả mã thoát `2`.
+- Mọi tính toán độ tươi ở ngưỡng `30` và `floor` chốt giá đi qua `chonoi/freshness.py` (`Fraction`), không dùng phép trừ float rời rạc; `chonoi/jsonl.py` giữ nguyên độ chính xác của khóa `fresh`.
+- `GatherSim.snapshot()` và `QuanSim.snapshot()` phải sao chép list/dict (`list(self.pos)`, `public_item(...)`) để tránh ghi đè chéo giữa các snapshot.
+- Khi thay đổi luật lõi hoặc mở rộng, luôn ghi rõ breaking change / lý do cập nhật test vào `CHANGELOG.md` và cập nhật bảng truy vết trong `docs/verification/phase-n.md`.
+
