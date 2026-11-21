@@ -79,6 +79,8 @@ Bản trình duyệt (`chonoi.live`) bổ sung các tính năng sáng tạo nân
 - **Đối thoại cốt truyện & Chợ Ông Năm / Tiệm Anh Ba:** đầu mỗi sáng & chiều Út Sen trò chuyện với **Má Tư**; sau khi lặn xong có thể ghé **Chợ Ông Năm** bán đồ ngoài thực đơn và mua nguyên liệu thuộc thực đơn (giới hạn tối đa `3` phần/ngày, `2` phần/loại); cuối ngày ghé **Tiệm Anh Ba** chào hỏi hai chiều, mua nâng cấp Bình Oxy / Áo Phao / **Balo Lặn (`12 → 16 → 20` ô)** không giới hạn thời gian.
 - **Đóng quán sớm (`🏮 Đóng quán sớm`):** kết thúc ca tối sớm khi hết nguyên liệu hoặc đã xong lượt khách.
 - **Animation quán ăn 2.5D (`ut-sen-walk.png`, `customers-sheet.png`):** Út Sen có hoạt ảnh đi bộ tay không và bưng khay món ăn; mỗi bàn có **ghế gỗ** riêng với hoạt ảnh khách đi từ lối vào, hạ người ngồi xuống ghế sau mặt bàn, ngồi ăn có món trên bàn & hơi nóng bốc lên rồi đi bộ ra cửa.
+- **Âm nhạc Miền Tây Nam Bộ, SFX & Menu Cài đặt (`⚙ Cài đặt`):** Nhạc nền ngũ cung riêng cho phiên sáng (Đàn Tranh, Đàn Bầu, Đàn Kìm — tự lọc trầm khi lặn) và phiên chiều/tối (rộn ràng với Sáo Trúc, Song Lang, Trống Cơm) cùng bộ SFX đầy đủ; nút `⚙ Cài đặt` cho phép chỉnh âm lượng tổng/BGM/SFX và chế độ Tương phản cao (`C`).
+- **Vật phẩm dưới nước & Sứa (`chonoi/live.py`):** Bổ sung Bình Oxy mini (`+35%` oxy), Chân vịt (`+35%` tốc độ 10s), Đồ lặn (`+55%` tốc độ 12s), Bùa hộ mệnh (`8s` miễn mất máu, hao oxy & miễn nhiễm Sứa) và Sứa phát sáng làm chậm 3.5s khi chạm phải.
 - **Nội dung mở rộng `--extra-content`:** thêm cá rô đồng, rau muống, công thức miền Tây mở rộng (`chonoi/extra_content.json`) và bộ sprite màu nước + animation bơi 6 khung hình (`chonoi/web/assets/`). Bật bằng `python3 -m chonoi.live --mode gather --extra-content`.
 
 ## Tài liệu & Truy vết
