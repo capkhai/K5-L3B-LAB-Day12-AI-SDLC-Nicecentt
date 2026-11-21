@@ -21,7 +21,7 @@ def _idle():
 class GatherMonstersTest(unittest.TestCase):
     def test_contract_v11_has_core_phase2_values(self):
         contract = load_contract()
-        self.assertIn(contract["contract_version"], ("1.1", "1.2"))
+        self.assertIn(contract["contract_version"], ("1.1", "1.2", "1.3"))
         tuning = contract["tuning"]
         self.assertEqual(len(tuning["quan"]["stoves"]), 2)
         self.assertEqual(len(tuning["quan"]["tables"]), 4)

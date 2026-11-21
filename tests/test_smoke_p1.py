@@ -68,8 +68,8 @@ class Contract(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", bad, "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out), "lỗi đầu vào phải thoát TRƯỚC khi ghi đầu ra")
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "-1", "--out", out)[0], 2)
-            # Contract v1.1/v1.2 mở nút `attack` (bỏ qua nếu chưa bật weapon); chỉ giữ `attack` lỗi ở v1.0.
-            bad_buttons = ("jump",) if contract_version() in ("1.1", "1.2") else ("jump", "attack")
+            # Contract >= 1.1 mở nút `attack` (bỏ qua nếu chưa bật weapon); chỉ giữ `attack` lỗi ở v1.0.
+            bad_buttons = ("jump",) if contract_version() in ("1.1", "1.2", "1.3") else ("jump", "attack")
             for button in bad_buttons:
                 unk = write_json(w.path("unk.json"), frames({"tick": 0, button: True}))
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
@@ -78,8 +78,8 @@ class Contract(unittest.TestCase):
     def test_con_03_old_and_future_modes_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            # Contract v1.1/v1.2 hỗ trợ `--mode day`; giữ từ chối `river` và chỉ từ chối `day` ở v1.0.
-            bad_modes = ("river",) if contract_version() in ("1.1", "1.2") else ("river", "day")
+            # Contract >= 1.1 hỗ trợ `--mode day`; giữ từ chối `river` và chỉ từ chối `day` ở v1.0.
+            bad_modes = ("river",) if contract_version() in ("1.1", "1.2", "1.3") else ("river", "day")
             for mode in bad_modes:
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
@@ -191,7 +191,7 @@ class Movement(unittest.TestCase):
 
     def test_time_ends_gather_and_keeps_hold(self):
         with Workdir() as w:
-            v12 = contract_version() == "1.2"
+            v12 = contract_version() in ("1.2", "1.3")
             hold = [{"id": "I1", "kind": "ca_loc", "fresh": 100}] if v12 else ["ca_loc"]
             sc = write_json(w.path("sc.json"), {"gather": {"hold": hold, "time_left_ticks": 3,
                                                            "player": {"pos": [50, 10]}}})
@@ -218,9 +218,9 @@ class Movement(unittest.TestCase):
 
 class Integration(unittest.TestCase):
     def test_inv_01_gather_writes_inventory_quan_reads_it(self):
-        """Ví dụ smoke test bàn giao kho (PRD-0 mục G / v1.2 TICKET-03): cập bến tick 0, quán đọc đúng kho."""
+        """Ví dụ smoke test bàn giao kho (PRD-0 mục G / v1.2+ TICKET-03): cập bến tick 0, quán đọc đúng kho."""
         with Workdir() as w:
-            v12 = contract_version() == "1.2"
+            v12 = contract_version() in ("1.2", "1.3")
             hold = (
                 [{"id": "I1", "kind": "ca_loc", "fresh": 100},
                  {"id": "I2", "kind": "bong_sung", "fresh": 100},

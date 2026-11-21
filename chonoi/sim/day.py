@@ -17,17 +17,23 @@ from .quan import QuanSim
 class DaySim:
     mode = "day"
 
-    def __init__(self, tuning, scenario, streams, ids, days=1):
-        if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 5:
-            raise BadInput("days phải là số nguyên trong [1, 5]")
+    def __init__(self, tuning, scenario, streams, ids, days=1, allow_extended_days=False):
+        max_days = 1000 if allow_extended_days else 5
+        if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= max_days:
+            raise BadInput(f"days phải là số nguyên trong [1, {max_days}]")
         self.tuning = tuning
         self.v12 = is_v12(tuning)
+        self.allow_extended_days = allow_extended_days
         self.scenario = validate_day_scenario(scenario, tuning)
         self.rng, self.ids = streams, ids
         self.days = days
         state = self.scenario.get("day", {})
         self.plans = plans(tuning, state.get("day_plan"))
-        if any(day not in self.plans for day in range(1, days + 1)):
+        plan_cycle = len(self.plans)
+        if allow_extended_days:
+            if any(d not in self.plans for d in range(1, plan_cycle + 1)):
+                raise BadInput("day_plan phải liên tục từ Ngày 1 để lặp chu kỳ soak")
+        elif any(day not in self.plans for day in range(1, days + 1)):
             raise BadInput("day_plan thiếu Ngày cần chạy")
         self.money = state.get("money", 0)
         self.earned = state.get("earned", 0)
@@ -52,7 +58,9 @@ class DaySim:
         self.phase, self.phase_tick = "gather", 0
         self.active_upgrades = dict(self.upgrades)
         self.stock = [] if self.v12 else {}
-        self.day_plan = copy.deepcopy(self.plans[self.day])
+        plan_day = ((self.day - 1) % len(self.plans)) + 1 if self.allow_extended_days else self.day
+        self.day_plan = copy.deepcopy(self.plans[plan_day])
+        self.day_plan["day"] = self.day
         effective = copy.deepcopy(self.tuning)
         for name, field in (("oxygen", "oxygen_max_s"), ("hp", "hp_max")):
             level = self.active_upgrades.get(name, 0)

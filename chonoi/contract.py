@@ -24,8 +24,12 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
     version = c.get("contract_version")
-    if version not in ("1.0", "1.1", "1.2"):
-        raise BadInput("contract_version phải là 1.0, 1.1 hoặc 1.2")
+    if version not in ("1.0", "1.1", "1.2", "1.3"):
+        raise BadInput("contract_version phải là 1.0, 1.1, 1.2 hoặc 1.3")
+    if version == "1.3":
+        for cmd_key in ("bench_cmd", "soak_cmd"):
+            if not isinstance(c.get(cmd_key), str) or not c[cmd_key].strip():
+                raise BadInput(f"contract v1.3 cần khai {cmd_key} (chuỗi khác rỗng)")
     extensions = c.get("extensions", [])
     if not isinstance(extensions, list) or any(not isinstance(code, str) or not code for code in extensions):
         raise BadInput("extensions phải là mảng mã mở rộng (chuỗi khác rỗng)")
@@ -126,7 +130,8 @@ def validate_tuning(t, version="1.0", extensions=()):
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
-    v11_plus = version in ("1.1", "1.2")
+    v11_plus = version in ("1.1", "1.2", "1.3")
+    v12_plus = version in ("1.2", "1.3")
     _validate_gather(g, v11=v11_plus)
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
@@ -147,8 +152,8 @@ def validate_tuning(t, version="1.0", extensions=()):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        if version not in ("1.1", "1.2") or "burn" not in extensions:
-            raise BadInput("burn_s hữu hạn cần contract v1.1/v1.2 và extensions chứa burn")
+        if not v11_plus or "burn" not in extensions:
+            raise BadInput("burn_s hữu hạn cần contract >= 1.1 và extensions chứa burn")
         _between("quan.burn_s", q["burn_s"], 0.1, 600)
     if g.get("current") is not None:
         if "current" not in extensions:
@@ -172,10 +177,10 @@ def validate_tuning(t, version="1.0", extensions=()):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
-    if version == "1.2":
+    if v12_plus:
         fr = t.get("freshness")
         if not isinstance(fr, dict):
-            raise BadInput("contract v1.2 cần tuning.freshness")
+            raise BadInput("contract >= 1.2 cần tuning.freshness")
         _between("freshness.initial", fr.get("initial"), 0.001, 100)
         _between("freshness.gather_decay_per_s", fr.get("gather_decay_per_s"), 0, 100)
         _between("freshness.quan_decay_per_s", fr.get("quan_decay_per_s"), 0, 100)

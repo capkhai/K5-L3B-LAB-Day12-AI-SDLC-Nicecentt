@@ -102,3 +102,11 @@
 - `GatherSim.snapshot()` và `QuanSim.snapshot()` phải sao chép list/dict (`list(self.pos)`, `public_item(...)`) để tránh ghi đè chéo giữa các snapshot.
 - Khi thay đổi luật lõi hoặc mở rộng, luôn ghi rõ breaking change / lý do cập nhật test vào `CHANGELOG.md` và cập nhật bảng truy vết trong `docs/verification/phase-n.md`.
 
+## Phase 4 — Contract v1.3, Benchmark, Soak & Release `v1.0.0`
+- `game.contract.json` đang ở `contract_version: "1.3"` (gameplay/tuning/kho/JSONL theo v1.2), khai thêm `"bench_cmd": "python3 -m chonoi.bench"` và `"soak_cmd": "python3 -m chonoi.soak"`.
+- Lệnh benchmark có render `1280×720`: `python -m chonoi.bench --seed 42 --duration 30 --out docs/proof/phase-4/bench.json`.
+- Lệnh soak 10 Ngày tất định: `python -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json`.
+- Đóng gói Release `v1.0.0`: `python tools/build_release.py` (tạo `dist/chonoi-v1.0.0.zip` và `.tar.gz`).
+- Giữ giới hạn `--days 1..5` cho `chonoi.headless --mode day`; `chonoi.soak` sử dụng `DaySim(..., allow_extended_days=True)` để lặp kế hoạch D1–D5 ở Ngày 6–10.
+
+

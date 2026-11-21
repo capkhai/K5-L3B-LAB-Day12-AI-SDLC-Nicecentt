@@ -25,6 +25,56 @@
   @media (min-width: 1180px) {
     :root { --hud-font: 18px; }
   }
+  /* Chế độ tương phản cao (Phase 4 — TICKET-04) */
+  body.high-contrast {
+    --bg: #000000;
+    --panel: #000000;
+    --panel-strong: #000000;
+    --border: #ffff00;
+    --text: #ffffff;
+    --muted: #ffeb3b;
+    --accent: #ffff00;
+    --cyan: #00ffff;
+    --green: #00ff66;
+    --warn: #ffeb3b;
+    --danger: #ff1744;
+    --purple: #ff66ff;
+  }
+  body.high-contrast .hud-top,
+  body.high-contrast .hud-bottom,
+  body.high-contrast .screen-card {
+    background: #000000 !important;
+    border: 2px solid #ffff00 !important;
+    backdrop-filter: none !important;
+  }
+  body.high-contrast .chip,
+  body.high-contrast .stat-pill,
+  body.high-contrast .btn {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
+  body.high-contrast .warn-banner {
+    background: #000000 !important;
+    color: #ffff00 !important;
+    border: 4px solid #ffff00 !important;
+    box-shadow: 0 0 0 3px #000000, 0 0 24px rgba(255, 255, 0, 0.85) !important;
+  }
+  body.high-contrast .warn-banner.monster { border-color: #ff66ff !important; color: #ff66ff !important; }
+  body.high-contrast .warn-banner.breath { border-color: #00ffff !important; color: #00ffff !important; }
+  body.high-contrast .warn-banner.angry { border-color: #ff1744 !important; color: #ffff00 !important; }
+  .warn-banner.angry {
+    background: rgba(198, 40, 40, 0.94);
+    border: 2px solid #ffeb3b;
+    color: #fffde7;
+    animation: blinkFast 0.65s infinite;
+  }
+  .warn-banner.low-oxy {
+    background: rgba(230, 81, 0, 0.92);
+    border: 2px solid #4fc3f7;
+    color: #ffffff;
+    animation: blinkFast 0.8s infinite;
+  }
   * { box-sizing: border-box; }
   html, body {
     margin: 0;
@@ -494,6 +544,7 @@
     <div class="hud-group" id="topCenter"></div>
     <div class="toolbar">
       <span class="meta-pill" id="connPill"><span class="dot" id="connDot"></span><span id="fpsLabel">-- FPS</span> · <span id="tickLabel">t0</span></span>
+      <button class="btn" id="btnContrast" type="button" title="Chế độ tương phản cao (C)">🌓 Tương phản</button>
       <button class="btn" id="btnPause" type="button" title="Tạm dừng (Esc / P)">⏸</button>
       <button class="btn" id="btnLog" type="button" title="Nhật ký sự kiện (H)">📜 Log</button>
       <button class="btn" id="btnSound" type="button" title="Âm thanh (M)">🔇</button>
@@ -531,6 +582,7 @@
     <p class="screen-sub" id="pauseSub">Mọi bộ đếm (kể cả Shop) đã tạm dừng.</p>
     <div class="menu-actions" style="flex-direction: column;">
       <button class="btn primary" id="btnPauseResume" type="button">▶ Tiếp tục (Esc / P)</button>
+      <button class="btn" id="btnPauseContrast" type="button">🌓 Chế độ tương phản cao (C)</button>
       <button class="btn" id="btnPauseRestart" type="button">↻ Chơi lại từ đầu (R)</button>
       <button class="btn danger-btn" id="btnPauseMenu" type="button">🏠 Về Menu chính</button>
     </div>
@@ -571,13 +623,33 @@ const screenModalEl = document.getElementById("screenModal");
 const screenCardEl = document.getElementById("screenCard");
 const pauseModalEl = document.getElementById("pauseModal");
 const pauseSubEl = document.getElementById("pauseSub");
+const btnContrast = document.getElementById("btnContrast");
 const btnPause = document.getElementById("btnPause");
 const btnLog = document.getElementById("btnLog");
 const btnSound = document.getElementById("btnSound");
 const btnRestart = document.getElementById("btnRestart");
 const btnPauseResume = document.getElementById("btnPauseResume");
+const btnPauseContrast = document.getElementById("btnPauseContrast");
 const btnPauseRestart = document.getElementById("btnPauseRestart");
 const btnPauseMenu = document.getElementById("btnPauseMenu");
+
+function applyHighContrast(enabled) {
+  document.body.classList.toggle("high-contrast", Boolean(enabled));
+  if (btnContrast) btnContrast.classList.toggle("active", Boolean(enabled));
+  if (btnPauseContrast) btnPauseContrast.textContent = enabled ? "🌓 Tắt tương phản cao (C)" : "🌓 Bật tương phản cao (C)";
+  try { localStorage.setItem("chonoi_high_contrast", enabled ? "1" : "0"); } catch (_) {}
+}
+function toggleHighContrast() {
+  applyHighContrast(!document.body.classList.contains("high-contrast"));
+}
+try {
+  if (localStorage.getItem("chonoi_high_contrast") === "1") applyHighContrast(true);
+} catch (_) {}
+if (btnContrast) btnContrast.addEventListener("click", toggleHighContrast);
+if (btnPauseContrast) btnPauseContrast.addEventListener("click", toggleHighContrast);
+window.addEventListener("keydown", (e) => {
+  if (e.key === "c" || e.key === "C") toggleHighContrast();
+});
 
 // ---------- Nhãn hiển thị tiếng Việt (chỉ dùng cho giao diện; công thức/giá đọc từ snap.menu) ----------
 const CORE_KINDS_ORDER = ["ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo"];
@@ -1188,18 +1260,30 @@ function updateHudDom() {
       : "Mọi bộ đếm thời gian và mô phỏng đã tạm dừng.";
   }
 
-  // Cảnh báo nổi: "Thủy quái!" & "Hết hơi!"
+  // 3 cảnh báo dễ nhận biết (chữ + biểu tượng): Thủy quái gần, Oxy sắp hết/cạn, Khách sắp giận
   const isPlaying = (snap.screen || "playing") === "playing" && !snap.paused && !snap.finished;
   const monsterWarn = isPlaying && hasMonsterThreat();
   const p0 = snap.player || {};
-  const atSurf0 = p0.at_surface !== undefined ? p0.at_surface : ((p0.pos ? p0.pos[1] : 0) <= ((snap.meta && snap.meta.surface_depth) ?? 0.5));
-  const breathWarn = isPlaying && snap.mode === "gather" && (p0.oxygen_ticks ?? 1) <= 0 && !atSurf0;
-  const warnKey = `${monsterWarn}|${breathWarn}`;
+  const meta0 = snap.meta || {};
+  const atSurf0 = p0.at_surface !== undefined ? p0.at_surface : ((p0.pos ? p0.pos[1] : 0) <= (meta0.surface_depth ?? 0.5));
+  const oxy0 = p0.oxygen_ticks ?? 1;
+  const oxyMax0 = p0.oxygen_max_ticks || Math.round((meta0.oxygen_max_s || 30) * 60);
+  const breathWarn = isPlaying && snap.mode === "gather" && oxy0 <= 0 && !atSurf0;
+  const lowOxyWarn = isPlaying && snap.mode === "gather" && !breathWarn && !atSurf0 && oxyMax0 > 0 && (oxy0 / oxyMax0) < 0.25;
+  const patienceMax0 = Math.round((meta0.patience_s || 60) * 60);
+  const angryTables = (isPlaying && snap.mode === "quan")
+    ? (snap.customers || [])
+        .filter((c) => c.state === "waiting" && patienceMax0 > 0 && (c.patience_ticks_left ?? patienceMax0) / patienceMax0 < 0.25)
+        .map((c) => c.table_id)
+    : [];
+  const warnKey = `${monsterWarn}|${breathWarn}|${lowOxyWarn}|${angryTables.join(",")}`;
   if (warnKey !== lastWarnKey) {
     lastWarnKey = warnKey;
     let wh = "";
     if (monsterWarn) wh += `<div class="warn-banner monster">🐊 THỦY QUÁI!</div>`;
     if (breathWarn) wh += `<div class="warn-banner breath">💨 HẾT HƠI!</div>`;
+    else if (lowOxyWarn) wh += `<div class="warn-banner low-oxy">🫧 OXY SẮP HẾT!</div>`;
+    if (angryTables.length > 0) wh += `<div class="warn-banner angry">💢 KHÁCH SẮP GIẬN! (${angryTables.join(", ")})</div>`;
     warnStackEl.innerHTML = wh;
   }
 

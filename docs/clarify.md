@@ -61,3 +61,12 @@ Nguồn: [docs/prd-phase-3.md](prd-phase-3.md) và [ADR 0001](adr/0001-phase3-it
 | ID cá thể qua các Ngày trong `--mode day` | Ngày 1 giữ nguyên `id` trong `gather.hold`; từ Ngày 2 trở đi cấp `id` mới (`I...`) tăng liên tục xuyên pha và Ngày (`reallocate_hold_ids=True`). |
 | Dòng nước lũ (`current`) khi ca kết thúc sớm hoặc chạm `--ticks` | `docked`/`time`/`fainted` phát `current_end(reason="phase_end")` trước `faint` (nếu có) và trước `gather_end`. Bước bắt đầu dòng trùng bước cuối ca vẫn cộng lực trước khi kết thúc. Giới hạn `--ticks` của CLI chỉ cắt mô phỏng, giữ nguyên `current.ticks_left`. |
 
+## Phase 4 — Đối chiếu TICKET-04 “Phát hành v1.0.0” (21/11/2026)
+
+| Vấn đề | Kết luận / căn cứ |
+|---|---|
+| `bench_cmd` chạy trên máy chấm không có GUI/Chrome | `chonoi/bench.py` render trực tiếp framebuffer RGB `1280×720` bằng thư viện chuẩn Python (slice copy tốc độ C) trên cảnh `Session("gather")` thật, nên chạy ổn định trên macOS/Linux/Windows không cần X11 hay trình duyệt. |
+| `soak_cmd` chạy 10 Ngày trong khi `--mode day` giới hạn 1–5 Ngày | Giữ nguyên giới hạn `1..5` cho `chonoi.headless --mode day` để không phá test v1.1/v1.2; thêm cờ nội bộ `DaySim(..., allow_extended_days=True)` chỉ dùng cho `chonoi.soak` để lặp kế hoạch D1–D5 cho D6–D10 trong cùng tiến trình. |
+| Cảnh báo & Tương phản cao | Bổ sung đủ 3 cảnh báo bằng chữ + biểu tượng (`THỦY QUÁI!`, `OXY SẮP HẾT!` / `HẾT HƠI!`, `KHÁCH SẮP GIẬN!`) và chế độ tương phản cao (`C` / nút HUD & Pause), tắt hoàn toàn ảnh hưởng tới headless. |
+
+

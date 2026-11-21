@@ -1,39 +1,43 @@
 # CHANGELOG
 
-## [1.2.0] — Phase 3: Mùa Nước Nổi (`phase-3`)
+## [1.0.0] — Phase 4: Phát hành `v1.0.0` (`phase-4`, Contract `v1.3`)
+
+### Thêm mới
+- **Contract `v1.3`** ([`game.contract.json`](game.contract.json)): khai báo `bench_cmd` (`python3 -m chonoi.bench`) và `soak_cmd` (`python3 -m chonoi.soak`); gameplay, tuning, kho cá thể và JSONL giữ nguyên theo v1.2.
+- **Benchmark có render `1280×720`** (`chonoi/bench.py`): đo cảnh buổi sáng lõi (Út Sen đứng yên ở bến, độ tươi, cá bơi, Cá Sấu Năm Chèo, hiệu ứng mặc định) với 3s làm nóng + 30s đo, xuất đủ 5 trường `avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms` sang JSON.
+- **Soak headless nhiều Ngày** (`chonoi/soak.py` + `DaySim(allow_extended_days=True)`): bot tất định chơi liên tục 10 Ngày (`gather -> quan -> shop`), lặp kế hoạch D1–D5 ở Ngày 6–10, giữ xuyên suốt tiền, tổng thu, uy tín, nâng cấp, số Ngày và ID cá thể.
+- **Khả năng tiếp cận & Cảnh báo** (`chonoi/web/index.html`): đủ 3 cảnh báo bằng chữ và biểu tượng (`🐊 THỦY QUÁI!`, `🫧 OXY SẮP HẾT!` / `💨 HẾT HƠI!`, `💢 KHÁCH SẮP GIẬN!`) và **Chế độ tương phản cao (High Contrast)** (phím `C`, nút trên HUD & menu Pause, lưu trong `localStorage`).
+- **Đóng gói & Pháp lý:** thêm `LICENSE` (MIT), rà soát `CREDITS.md`, thêm `tools/build_release.py` (tạo gói `chonoi-v1.0.0.zip` & `.tar.gz`), cập nhật `README.md` chạy từ clone sạch trong ≤ 3 lệnh, và hoàn thiện `docs/verification/phase-4.md`, `docs/retro.md`.
+
+### Kiểm thử bổ sung
+- `tests/test_phase4_v13.py`: kiểm Contract `v1.3`, `bench_cmd` (định dạng 5 trường + exit 2 với tham số sai), `soak_cmd` 10 Ngày tất định (`crashes == 0`, `days_completed == 10`, lặp kế hoạch D1–D5).
+- `tests/test_ui_live.py`: kiểm sự hiện diện đủ 3 cảnh báo và chế độ tương phản cao trong `chonoi/web/index.html`.
+
+---
+
+## [0.3.0] — Phase 3: Mùa Nước Nổi (`phase-3`, Contract `v1.2`)
 
 ### Breaking Changes (Contract `1.1` → `1.2`)
-- **`game.contract.json`**:
-  - Nâng `"contract_version"` lên `"1.2"`.
-  - Thêm khối `tuning.freshness`: `{"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}`.
-  - Khai báo 3 mở rộng tại gốc manifest: `"extensions": ["burn", "snake", "current"]`.
-- **Schema file kho (`--inventory` / `--inventory-out`) và `gather_end.data.inventory`**:
-  - Đổi từ kho đếm `{"items": {"ca_loc": 1}}` sang kho cá thể `{"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}` (kho rỗng `{"items": []}`).
-  - Ở `contract_version: "1.2"`, file kho đếm v1.0/v1.1 bị từ chối với **mã thoát 2**.
-- **Schema Scenario & Snapshot**:
-  - `gather.hold`, `quan.stock`, Shop `stock` đổi sang mảng cá thể `[{"id", "kind", "fresh"}]`.
-  - `quan.customers[].reserved` đổi từ map đếm sang mảng id cá thể `["I1", ...]`.
-  - `cook_started.data.items` đổi sang mảng cá thể đã tiêu, sắp theo `(kind, id)`.
-  - `monster_hit.data.lost` và `faint.data.lost` đổi sang mảng cá thể theo thứ tự bỏ LIFO.
-  - Thêm event `spoiled` (`{item_id, kind, location}` với `location` là `"hold"` hoặc `"stock"`).
-- **Luật mới**:
-  - Hàng mới có `fresh = 100`, hao `0.5/s` (`2/240`/tick) ở `gather` và `0.25/s` (`1/240`/tick) ở `quan` (kể cả hàng đang giữ chỗ); pause dừng hao tươi; món chín và hàng ở Shop không hao.
-  - `fresh < 30` là ươn (so chính xác bằng `Fraction` trước làm tròn), phát `spoiled` đúng 1 lần theo thứ tự id; đơn có cá thể giữ vừa ươn nhả toàn bộ phần giữ và thử giữ lại đúng 1 lần theo `(order_tick, table_id)`, thiếu thì chuyển `unfulfillable`.
-  - Khi bắt đầu nấu, chốt `base_price = floor(menu_price * avg_fresh / 100)` bằng số học chính xác; boa tính trên `base_price` đã chốt.
+- **`game.contract.json`**: nâng `contract_version` lên `"1.2"`, thêm khối `tuning.freshness` (`100 / 0.5 / 0.25 / 30`) và khai báo 3 mở rộng `"extensions": ["burn", "snake", "current"]`.
+- **Schema kho cá thể:** đổi file kho, `gather.hold`, `quan.stock`, Shop `stock` từ map đếm sang mảng cá thể `[{"id": "I1", "kind": "...", "fresh": ...}]` (kho rỗng `{"items": []}`); file kho đếm v1.0/v1.1 trả mã thoát `2`.
+- **Độ tươi, giữ chỗ & chốt giá:** `chonoi/freshness.py` dùng `Fraction` cho ngưỡng `fresh < 30` và `base_price = floor(menu_price * avg_fresh / 100)`; phát `spoiled` theo id; đơn có cá thể giữ vừa ươn nhả toàn bộ và thử giữ lại đúng 1 lần theo `(order_tick, table_id)`; `cook_started.data.items` sắp theo `(kind, id)`; `monster_hit`/`faint` rơi mảng cá thể LIFO.
+- **3 phần mở rộng (`extensions`):** `current` (`chonoi/sim/gather_current.py`), `snake` (`M3` loài `ran`), `burn` (`quan.burn_s: 20`).
+- **HUD v1.2:** hiển thị độ tươi (%) và cảnh báo hàng ươn (`ƯƠN`, `HÀNG ƯƠN`).
 
-### Mở rộng đã bật (`extensions`)
-- **`current`** (Dòng nước lũ): `tuning.gather.current`, scenario `random_current` / `current_direction`, events `current_warning`, `current_start`, `current_end`.
-- **`snake`** (Rắn Hổ Mây `M3`): `tuning.gather.monsters.species.ran` + `M3` từ Ngày 1.
-- **`burn`** (Cháy món): `tuning.quan.burn_s: 20` (`1200` tick).
+### Lý do cập nhật test cũ P1/P2
+- `tests/test_smoke_p1.py`, `tests/test_gather.py`, `tests/test_monsters.py`, `tests/test_extensions.py`, `tests/test_ui_live.py`, `tests/test_python_starter_units.py`: chuyển fixture `hold`/`stock`/`reserved`/file kho rỗng sang schema mảng cá thể v1.2+ và kỳ vọng `M3` khi bật `snake`.
+- `tests/test_quan_service.py`: `Service` tách `freshness` để giữ nguyên 25 test đơn vị v1.1; `HeadlessService` cập nhật kịch bản sang v1.2 (`money=70, score=370` do hao `1/240` ở tick 1).
+- `tests/test_chur04_phase2.py`: `phase2_contract()` tách `freshness` để giữ nguyên bộ regression v1.1.
 
-### Hướng dẫn cập nhật fixture (v1.1 → v1.2)
-- Đổi `gather.hold: ["ca_loc"]` → `[{"id": "I1", "kind": "ca_loc", "fresh": 100}]`.
-- Đổi `quan.stock: {"ca_loc": 1}` → `[{"id": "I1", "kind": "ca_loc", "fresh": 100}]`.
-- Đổi `customers[].reserved: {"ca_loc": 1}` → `["I1"]` (hoặc bỏ trống để tự cấp cá thể tươi nhất, hòa theo id).
-- File kho rỗng đổi `{"items": {}}` → `{"items": []}`.
+---
 
-### Các test cũ cập nhật vì luật mới (có lý do)
-- `tests/test_smoke_p1.py`: cập nhật `contract_version() in ("1.1", "1.2")`, đổi fixture `hold`/file kho rỗng và kỳ vọng `test_time_ends_gather_and_keeps_hold` + `test_inv_01_gather_writes_inventory_quan_reads_it` sang schema cá thể v1.2.
-- `tests/test_gather.py`, `tests/test_monsters.py`, `tests/test_extensions.py`, `tests/test_ui_live.py`, `tests/test_python_starter_units.py`: đổi fixture `hold`/`stock`/`reserved` sang mảng cá thể v1.2 và kiểm `lost` theo mảng cá thể LIFO + `M3` khi bật `snake`.
-- `tests/test_quan_service.py`: `Service` tách `freshness` khỏi bản sao tuning để giữ nguyên 25 test đơn vị P1/P2; `HeadlessService` cập nhật kịch bản headless sang v1.2 (ở tick 1 hao `1/240` → `base_price = 59`, `tip = 11`, `money = 70`, `score = 370`).
-- `tests/test_chur04_phase2.py`: `phase2_contract()` bỏ `freshness` để giữ nguyên bộ regression v1.1 (40+ test).
+## [0.2.0] — Phase 2: Một ngày ở chợ nổi (`phase-2`, Contract `v1.1`)
+
+- Chốt số liệu chuẩn v1.1: 6 nguyên liệu, 6 nút hái `N1–N6`, 6 món, 2 bếp `B1–B2`, 4 bàn `T1–T4`, 5 Ngày `day_plan`, Shop (`oxygen`, `hp`).
+- Triển khai đàn cá bơi & sinh theo lịch (`chonoi/sim/gather_fish.py`), Cá Sấu Năm Chèo `M1`/`M2` + Máu/bất tử/recoil/LIFO (`chonoi/sim/gather_monsters.py`), vòng ngày & Shop (`chonoi/sim/day.py`, `day_config.py`), Pause toàn cục (`chonoi/runner.py`), và giao diện 6 màn hình + HUD v1.1 (`chonoi/live.py`, `chonoi/web/index.html`).
+
+---
+
+## [0.1.0] — Phase 1: MVP hai buổi (`phase-1`, Contract `v1.0`)
+
+- Hoàn thiện vòng lặp Lặn & Hái (`chonoi/sim/gather.py`) và Mở Quán (`chonoi/sim/quan.py`, `quan_customers.py`, `quan_service.py`), bàn giao kho qua file `--inventory-out` / `--inventory`, giao diện trình duyệt (`chonoi/live.py`, `chonoi/web/index.html`) cùng sprite màu nước + `--extra-content`, và bộ skill harness (`check-contract`, `prepare-proof`).

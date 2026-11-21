@@ -1,71 +1,85 @@
-# Day 12 — AI SDLC: Quán Ăn Chợ Nổi
+# Quán Ăn Chợ Nổi — Release `v1.0.0` (Team Nicecentt)
 
-> **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
-> **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
+> **Day 12 — AI SDLC** · Game 2D hai buổi **Lặn & Hái → Mở Quán → Shop**, hỗ trợ **Contract `v1.3`**, độ tươi cá thể, 3 phần mở rộng (`burn`, `snake`, `current`), benchmark có render `1280×720` và soak 10 Ngày tất định.
 
-## Bắt buộc (chỉ có thế)
+## Chạy nhanh từ clone sạch (≤ 3 lệnh — macOS / Linux)
 
-Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair, có hay không CI…). Cái bắt buộc:
-
-1. **Một repo chung:** trưởng nhóm **fork** repo này, đặt tên `K5-L3B-LAB-Day12-AI-SDLC-<ten-nhom>`, thêm mọi thành viên làm collaborator (*Settings → Collaborators*, quyền Write) và để repo **public** (giảng viên xem được, không cần mời).
-2. **Cả nhóm cùng commit** bằng tài khoản GitHub của mình, mỗi người **≥ 3 commit có nội dung** (làm cặp thì ghi `Co-authored-by:`).
-3. **Điền [`TEAM.md`](TEAM.md):** danh sách thành viên + thỏa thuận làm việc nhóm; sửa `team_size` trong [`game.contract.json`](game.contract.json). Commit của người không có trong `TEAM.md` không được tính.
-4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
-5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
-
-## Bắt đầu nhanh
+**Yêu cầu môi trường:** Python **3.10+** (chỉ dùng thư viện chuẩn, **không cần `pip install`**, trình duyệt hiện đại cho chế độ chơi trực tiếp).
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/capkhai/K5-L3B-LAB-Day12-AI-SDLC-Nicecentt.git
+cd K5-L3B-LAB-Day12-AI-SDLC-Nicecentt
+python3 -m chonoi.live --mode day
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Mở địa chỉ `http://127.0.0.1:8000/` in trên terminal (có thể dùng `--mode gather` hoặc `--mode quan`).
 
-## Tự do sáng tạo
+> **Windows PowerShell:** thay `python3` bằng `python`: `python -m chonoi.live --mode day`.
 
-Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
+## Điều khiển & Khả năng tiếp cận (Accessibility)
 
-## Sáng tạo của nhóm
+- **Di chuyển:** `WASD` hoặc phím mũi tên
+- **Tương tác / Hái / Cập bến / Nấu / Bưng / Phục vụ:** `E`
+- **Bắt cá (dưới nước):** `Space`
+- **Tạm dừng (dừng toàn bộ bộ đếm, kể cả Shop):** `Esc` hoặc `P`
+- **Chơi lại từ đầu:** `R`
+- **Chế độ tương phản cao (High Contrast):** nhấn `C` hoặc nút `🌓 Tương phản` trên thanh HUD / menu Pause
+- **3 cảnh báo trực quan bằng chữ & biểu tượng:**
+  - `🐊 THỦY QUÁI!` (+ viền tím khi thủy quái gần)
+  - `🫧 OXY SẮP HẾT!` (< 25% oxy) và `💨 HẾT HƠI!` (oxy = 0)
+  - `💢 KHÁCH SẮP GIẬN! (T1…)` (khách còn < 25% kiên nhẫn)
 
-Bản trình duyệt có thêm cá kèo, cá rô đồng, kèo nèo và rau muống, cùng ba công thức cá kèo kho tộ, canh chua cá rô kèo nèo và rau muống xào. Dữ liệu nằm trong `chonoi/extra_content.json`. Bật bằng `python -m chonoi.live --mode gather --extra-content` hoặc dùng `--mode quan` để nạp thực đơn mở rộng.
+## Lệnh kiểm thử, Headless, Benchmark & Soak
+
+### 1. Chạy toàn bộ test (macOS / Linux)
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -p "test_*.py" -v
+python3 .agents/skills/check-contract/check_contract.py
+```
+
+*(Windows PowerShell: `$env:PYTHONPATH = "tests;."; python -m unittest tests/test_phase4_v13.py tests/test_phase3_v12.py tests/test_extensions.py tests/test_gather_v12.py tests/test_gather.py tests/test_monsters.py tests/test_chur04_phase2.py tests/test_quan_service.py tests/test_smoke_p1.py tests/test_ui_live.py tests/test_python_starter_units.py tests/test_team_check.py -v`)*
+
+### 2. Chế độ Headless (Contract `v1.3`)
+```bash
+python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out gather.jsonl
+python3 -m chonoi.headless --mode quan --seed 1 --ticks 600 --out quan.jsonl
+python3 -m chonoi.headless --mode day --days 1 --seed 7 --ticks 22200 --out day.jsonl
+```
+
+### 3. Benchmark có render `1280×720` (3s làm nóng + 30s đo)
+```bash
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json
+```
+
+### 4. Soak Headless 10 Ngày (lặp kế hoạch D1–D5 cho D6–D10)
+```bash
+python3 -m chonoi.soak --seed 7 --days 10 --out soak.json
+```
+
+### 5. Đóng gói bản phát hành
+```bash
+python3 tools/build_release.py
+```
 
 ## Mở rộng đã hoàn thành (`extensions`)
 
-Nhóm **Nicecentt** (6 thành viên — yêu cầu tối thiểu 2 mở rộng) đã hoàn thành **3 mở rộng**, khai mã tại gốc [`game.contract.json`](game.contract.json) (`"extensions": ["burn", "snake", "current"]`):
+Nhóm **Nicecentt** (6 thành viên — yêu cầu tối thiểu 2 mở rộng) đã hoàn thành **3 mở rộng**, khai báo tại gốc [`game.contract.json`](game.contract.json) (`"extensions": ["burn", "snake", "current"]`):
 
-1. **`current` — Dòng nước lũ (Phase 3):** Lịch chu kỳ `1800 * k` tick, cảnh báo trước 120 tick (`current_warning`), chảy 480 tick (`current_start`), cộng lực `1.5 m/s` theo trục `x` khi độ sâu đầu bước `d >= 10` (chặn mép, không cộng vào `player.vel`), kết thúc `current_end(elapsed)` ở `t + 480` hoặc `current_end(phase_end)` trước `faint`/`gather_end` khi ca kết thúc sớm. Hỗ trợ `gather.random_current` và `gather.current_direction` trong scenario.
-2. **`snake` — Rắn Hổ Mây (`M3`, Phase 2):** Xuất hiện từ Ngày 1 ở `[72, 14] ↔ [76, 14]`, `d ∈ [8, 20]`, tuần tra `1.0 m/s`, đuổi `3.5 m/s` trong `<= 8 m` khi `d >= 8`, rời đuổi khi `> 16 m` hoặc `d < 8`, dùng chung luật va chạm/LIFO/recoil.
-3. **`burn` — Cháy món (Phase 2):** `quan.burn_s: 20` (`1200` tick). Đúng `1200` tick vẫn bưng được; từ tick `1201` phát `dish_burnt`, trả bếp về `idle`, không hoàn nguyên liệu và thử giữ chỗ lại ngay (`reserved` nếu còn hàng, `unfulfillable` nếu thiếu).
+1. **`current` — Dòng nước lũ (Phase 3):** Chu kỳ `1800 * k` tick, cảnh báo trước 120 tick (`current_warning`), chảy 480 tick (`current_start`), cộng lực `1.5 m/s` theo trục `x` khi độ sâu đầu bước `d >= 10`, kết thúc `current_end(elapsed)` hoặc `current_end(phase_end)`. Hỗ trợ `gather.random_current` và `gather.current_direction`.
+2. **`snake` — Rắn Hổ Mây (`M3`, Phase 2):** Xuất hiện từ Ngày 1 ở `[72, 14] ↔ [76, 14]`, `d ∈ [8, 20]`, tuần tra `1.0 m/s`, đuổi `3.5 m/s` trong `<= 8 m`, rời đuổi khi `> 16 m` hoặc `d < 8`.
+3. **`burn` — Cháy món (Phase 2):** `quan.burn_s: 20` (`1200` tick). Đúng `1200` tick vẫn bưng được; từ tick `1201` phát `dish_burnt`, trả bếp về `idle` và thử giữ chỗ lại ngay.
 
-- Test tự động: [`tests/test_extensions.py`](tests/test_extensions.py) và [`tests/test_chur04_phase2.py`](tests/test_chur04_phase2.py) (`Quan11`).
-- Bằng chứng chi tiết: [`docs/proof/phase-3/extensions.md`](docs/proof/phase-3/extensions.md).
+- Test tự động: [`tests/test_extensions.py`](tests/test_extensions.py), [`tests/test_chur04_phase2.py`](tests/test_chur04_phase2.py) (`Quan11`).
+- Bằng chứng: [`docs/proof/phase-3/extensions.md`](docs/proof/phase-3/extensions.md).
 
-## Lịch 3 giờ
+## Sáng tạo của nhóm
 
-| Mốc | Phase | Hạn tag |
-|---|---|---|
-| 0:00 | Phase 1 (PRD-0) | `phase-1` trước 1:00 |
-| 1:00 | Phase 2 | `phase-2` trước 1:55 |
-| 1:55 | Phase 3 | `phase-3` trước 2:30 |
-| 2:30 | Phase 4 | `phase-4` + Release `v1.0.0` trước 3:00 |
+Bản trình duyệt có thêm cá kèo, cá rô đồng, kèo nèo và rau muống, cùng ba công thức cá kèo kho tộ, canh chua cá rô kèo nèo và rau muống xào (dữ liệu tại `chonoi/extra_content.json`), kèm bộ sprite màu nước và animation bơi 6 khung hình (`chonoi/web/assets/`). Bật bằng `python3 -m chonoi.live --mode gather --extra-content`; mặc định **tắt hoàn toàn ở chế độ headless** để giữ nguyên 100% Test Contract.
 
-Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi trung thực trong bằng chứng.
+## Tài liệu & Truy vết
 
-## Đánh giá (100 điểm)
-
-| Hạng mục | Điểm |
-|---|---|
-| Test tự động ẩn (headless, gồm kiểm tra lại phase trước) | 25 |
-| Làm việc nhóm (một repo chung, chia việc, tích hợp, đổi yêu cầu) | 25 |
-| Kiểm chứng & bằng chứng | 15 |
-| Harness AI (AGENTS.md, skill, nhật ký dùng AI) | 10 |
-| Đánh giá & retro | 10 |
-| Chất lượng sản phẩm (đúng yêu cầu, mở rộng/sáng tạo) | 10 |
-| Demo | 5 |
-
-## Quy định
-
-- Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
-- Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+- Danh sách nhóm: [`TEAM.md`](TEAM.md) · Phản tư cá nhân: `docs/members/`
+- Thay đổi theo từng phase: [`CHANGELOG.md`](CHANGELOG.md)
+- Xác minh theo phase: [`docs/verification/phase-1.md`](docs/verification/phase-1.md) · [`phase-2.md`](docs/verification/phase-2.md) · [`phase-3.md`](docs/verification/phase-3.md) · [`phase-4.md`](docs/verification/phase-4.md)
+- Retro & Nhật ký AI: [`docs/retro.md`](docs/retro.md) · [`docs/ai-usage-log.md`](docs/ai-usage-log.md) · [`docs/clarify.md`](docs/clarify.md)
+- Giấy phép & Nguồn tài sản: [`LICENSE`](LICENSE) · [`CREDITS.md`](CREDITS.md)

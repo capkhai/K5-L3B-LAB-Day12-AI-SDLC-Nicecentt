@@ -62,9 +62,9 @@ def main(argv=None) -> int:
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
         version = contract.get("contract_version")
-        v11_plus = version in ("1.1", "1.2")
+        v11_plus = version in ("1.1", "1.2", "1.3")
         if a.mode == "day" and not v11_plus:
-            raise BadInput("--mode day cần contract v1.1/v1.2 và tuning.day_plan/shop từ Integrator")
+            raise BadInput("--mode day cần contract >= 1.1 và tuning.day_plan/shop từ Integrator")
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs, buttons=BUTTONS_V11 if v11_plus else BUTTONS_V10)

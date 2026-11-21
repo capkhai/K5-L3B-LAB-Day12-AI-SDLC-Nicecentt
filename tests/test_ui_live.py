@@ -36,7 +36,8 @@ class LiveUiContractTest(unittest.TestCase):
         for dish_id in (*contract["menu"].keys(), *extra["menu"].keys()):
             self.assertIn(dish_id, self.html)
         for token in ("day_intro", "evening_intro", "day_result", "shop", "summary",
-                      "THỦY QUÁI!", "HẾT HƠI!", "HÀNG ƯƠN", "drawMonster", "pauseModal"):
+                      "THỦY QUÁI!", "OXY SẮP HẾT!", "HẾT HƠI!", "KHÁCH SẮP GIẬN!",
+                      "HÀNG ƯƠN", "high-contrast", "btnContrast", "drawMonster", "pauseModal"):
             self.assertIn(token, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
         self.assertIn("/assets/ut-sen-swim.png", self.html)
