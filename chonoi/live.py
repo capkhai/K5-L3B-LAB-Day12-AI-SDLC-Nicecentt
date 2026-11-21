@@ -25,7 +25,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .contract import load_contract
 from .errors import BadInput
-from .freshness import is_v12
+from .freshness import is_spoiled, is_v12, item_frac, make_item, public_item
+from .ids import id_key, sort_by_id
 from .inputs import LiveInputs
 from .inventory import KINDS_P2, read_inventory
 from .runner import Session
@@ -39,7 +40,19 @@ MAX_BODY = 4096
 RECENT_EVENTS = 60
 DAY_INTRO_TICKS = 240      # 4 giây (bấm phím để bỏ qua)
 EVENING_INTRO_TICKS = 210  # 3.5 giây (bấm phím để bỏ qua)
-SHOP_DEFAULT_TICKS = 600   # 10 giây (hoặc shop_done)
+SHOP_DEFAULT_TICKS = 600   # 10 giây (bản live không tự đóng Shop để người chơi thong thả nói chuyện Anh Ba)
+MARKET_SELL_PRICES = {
+    "ca_loc": 20,
+    "ca_linh": 8,
+    "ca_keo": 10,
+    "bong_dien_dien": 5,
+    "bong_sung": 5,
+    "keo_neo": 5,
+    "ca_ro_dong": 14,
+    "rau_muong": 5,
+}
+MARKET_MAX_BUYS_PER_DAY = 3
+MARKET_MAX_BUY_PER_KIND = 2
 
 LIVE_BUTTONS = ("interact", "catch", "pause", "shop_done", "attack", "photo")
 
@@ -97,6 +110,7 @@ def _parse_shop_catalog(tuning: dict) -> dict:
         "items": {
             "oxygen": _entry("oxygen", [100, 200], 10, "Bình Oxy", "+{bonus}s oxy tối đa"),
             "hp": _entry("hp", [120, 240], 1, "Tăng Máu", "+{bonus} Máu tối đa"),
+            "bag": {"id": "bag", "label": "Balo Lặn", "unit": "+{bonus} ô giỏ", "costs": [150, 350], "bonus": 4, "max_level": 2},
         },
     }
 
@@ -169,8 +183,8 @@ class LiveGame:
         self._outer_tick = 0
         self.day = 1
         self.days_completed = 0
-        self.active_upgrades = {"oxygen": 0, "hp": 0}
-        self.pending_upgrades = {"oxygen": 0, "hp": 0}
+        self.active_upgrades = {"oxygen": 0, "hp": 0, "bag": 0}
+        self.pending_upgrades = {"oxygen": 0, "hp": 0, "bag": 0}
         self._shop_cfg = _parse_shop_catalog(self.tuning)
         self.shop_ticks_left = 0
         self.last_gather_inventory = {"items": [] if is_v12(self.tuning) else {}}
@@ -184,6 +198,10 @@ class LiveGame:
         self._prev_shop_done_held = False
         self._shop_open = False
         self.screen_ticks_left = 0
+        self.market_buys_today = 0
+        self.market_buys_by_kind = {}
+        self.shop_last_note = ""
+        self.market_last_note = ""
 
         if self.mode == "day":
             native = _try_native_day_session(self.tuning, self._scenario, self._seed, self.days_total)
@@ -210,10 +228,13 @@ class LiveGame:
         t = copy.deepcopy(self._base_tuning)
         oxy_lvl = self.active_upgrades.get("oxygen", 0)
         hp_lvl = self.active_upgrades.get("hp", 0)
+        bag_lvl = self.active_upgrades.get("bag", 0)
         oxy_bonus = self._shop_cfg["items"]["oxygen"]["bonus"]
         hp_bonus = self._shop_cfg["items"]["hp"]["bonus"]
+        bag_bonus = self._shop_cfg["items"]["bag"]["bonus"]
         t["gather"]["oxygen_max_s"] = t["gather"]["oxygen_max_s"] + oxy_lvl * oxy_bonus
         t["gather"]["hp_max"] = int(t["gather"]["hp_max"] + hp_lvl * hp_bonus)
+        t["gather"]["hold_capacity"] = int(t["gather"]["hold_capacity"] + bag_lvl * bag_bonus)
         return t
 
     def _build_day_gather_session(self, day: int) -> Session:
@@ -270,28 +291,24 @@ class LiveGame:
                 nxt = time.perf_counter()
 
     def _tick_once(self):
-        if self.screen in ("menu", "exited", "summary", "day_result"):
+        if self.screen in ("menu", "exited", "summary", "day_result", "market"):
             return
         if self.paused:
             self._outer_tick += 1
             return
 
-        # Intro screens (4s / 3.5s) — dừng khi pause
+        # Intro screens — dừng khi pause; không tự skip đột ngột khi đã hết đếm để người chơi kịp đọc thoại Má Tư
         if self.screen in ("day_intro", "evening_intro"):
             self._outer_tick += 1
             if self.screen_ticks_left > 0:
                 self.screen_ticks_left -= 1
-            if self.screen_ticks_left <= 0:
-                self._finish_intro_locked()
             return
 
-        # Live Shop countdown (dừng khi pause!)
+        # Live Shop: giữ bộ đếm hiển thị tương thích test nhưng KHÔNG tự đóng ép người chơi (bỏ giới hạn thời gian)
         if self.screen == "shop" and not self._native_day:
             self._outer_tick += 1
             if self.shop_ticks_left > 0:
                 self.shop_ticks_left -= 1
-            if self.shop_ticks_left <= 0:
-                self._close_shop_locked(reason="time")
             return
 
         s = self.session
@@ -332,6 +349,9 @@ class LiveGame:
             self.carry_money = sim.money
             self.carry_earned = sim.earned
             self.carry_reputation = sim.reputation
+            self.market_buys_today = 0
+            self.market_buys_by_kind = {}
+            self.market_last_note = ""
             self.session = self._build_day_quan_session(self.day, items)
             self.inputs = LiveInputs(buttons=LIVE_BUTTONS)
             self.screen = "evening_intro"
@@ -362,7 +382,113 @@ class LiveGame:
         self.screen = "shop"
         self._shop_open = True
         self.shop_ticks_left = self._shop_cfg["duration_ticks"]
+        self.shop_last_note = ""
         self._emit_live_event("phase_start", {"day": self.day, "phase": "shop"}, phase="shop")
+
+    def _market_state_locked(self) -> dict:
+        plan = _day_plan_for(self._base_tuning, self.day)
+        needed_kinds = set(plan["needed"].keys())
+        sim = self.session.sim
+        spoiled_below = self.tuning.get("freshness", {}).get("spoiled_below", 30)
+        stock_items = sim.stock if getattr(sim, "mode", None) == "quan" else []
+        sellable = {}
+        if isinstance(stock_items, list):
+            for it in stock_items:
+                k = it["kind"]
+                if k not in needed_kinds and not is_spoiled(it, spoiled_below):
+                    sellable[k] = sellable.get(k, 0) + 1
+        elif isinstance(stock_items, dict):
+            for k, qty in stock_items.items():
+                if k not in needed_kinds and qty > 0:
+                    sellable[k] = qty
+        buyable = {}
+        for k in sorted(needed_kinds):
+            base = MARKET_SELL_PRICES.get(k, 10)
+            bought_k = self.market_buys_by_kind.get(k, 0)
+            rem_k = max(0, min(MARKET_MAX_BUY_PER_KIND - bought_k, MARKET_MAX_BUYS_PER_DAY - self.market_buys_today))
+            buyable[k] = {"price": int(base * 1.5), "remaining": rem_k, "bought": bought_k}
+        return {
+            "open": self.screen == "market",
+            "needed_kinds": sorted(needed_kinds),
+            "sell_prices": dict(MARKET_SELL_PRICES),
+            "sellable": sellable,
+            "buyable": buyable,
+            "buys_used": self.market_buys_today,
+            "buys_max": MARKET_MAX_BUYS_PER_DAY,
+            "buys_per_kind_max": MARKET_MAX_BUY_PER_KIND,
+            "last_note": self.market_last_note,
+        }
+
+    def _market_sell_locked(self, kind: str) -> dict:
+        if self.screen != "market" or self.paused:
+            return {"ok": False, "reason": "market_closed"}
+        sim = self.session.sim
+        if getattr(sim, "mode", None) != "quan":
+            return {"ok": False, "reason": "wrong_phase"}
+        plan = _day_plan_for(self._base_tuning, self.day)
+        if kind in plan["needed"]:
+            self.market_last_note = "Ông Năm: Món này có trong thực đơn tối nay đó cháu, giữ lại mà nấu nghe!"
+            return {"ok": False, "reason": "in_plan"}
+        price = MARKET_SELL_PRICES.get(kind, 5)
+        spoiled_below = self.tuning.get("freshness", {}).get("spoiled_below", 30)
+        if isinstance(sim.stock, list):
+            cands = [it for it in sim.stock if it["kind"] == kind and not is_spoiled(it, spoiled_below)]
+            if not cands:
+                self.market_last_note = "Ông Năm: Trong giỏ không còn hàng tươi loại này để bán rồi cháu ơi!"
+                return {"ok": False, "reason": "out_of_stock"}
+            cands.sort(key=lambda it: (-item_frac(it), id_key(it["id"])))
+            chosen = cands[0]
+            sim.stock.remove(chosen)
+            self.last_gather_inventory = {"items": [public_item(it) for it in sort_by_id(sim.stock)]}
+        else:
+            if sim.stock.get(kind, 0) <= 0:
+                return {"ok": False, "reason": "out_of_stock"}
+            sim.stock[kind] -= 1
+            if sim.stock[kind] <= 0:
+                del sim.stock[kind]
+            self.last_gather_inventory = {"items": dict(sim.stock)}
+        self.carry_money += price
+        self.carry_earned += price
+        sim.money = self.carry_money
+        sim.earned = self.carry_earned
+        self.market_last_note = f"Ông Năm: Ông mua giùm cháu 1 phần (+{price}k), tiền tươi thóc thật nè!"
+        self._emit_live_event("vendor_trade", {"action": "sell", "kind": kind, "price": price, "money": self.carry_money}, phase="market")
+        return {"ok": True, "action": "sell", "kind": kind, "price": price, "money": self.carry_money}
+
+    def _market_buy_locked(self, kind: str) -> dict:
+        if self.screen != "market" or self.paused:
+            return {"ok": False, "reason": "market_closed"}
+        sim = self.session.sim
+        if getattr(sim, "mode", None) != "quan":
+            return {"ok": False, "reason": "wrong_phase"}
+        plan = _day_plan_for(self._base_tuning, self.day)
+        if kind not in plan["needed"]:
+            self.market_last_note = "Ông Năm: Chợ ông chỉ bán đồ đúng thực đơn bữa nay thôi cháu!"
+            return {"ok": False, "reason": "not_in_plan"}
+        if self.market_buys_today >= MARKET_MAX_BUYS_PER_DAY:
+            self.market_last_note = f"Ông Năm: Bữa nay ông chia tối đa {MARKET_MAX_BUYS_PER_DAY} phần thôi, mai cháu chịu khó lặn tiếp nghe!"
+            return {"ok": False, "reason": "daily_limit"}
+        if self.market_buys_by_kind.get(kind, 0) >= MARKET_MAX_BUY_PER_KIND:
+            self.market_last_note = f"Ông Năm: Loại này ông chỉ nhường tối đa {MARKET_MAX_BUY_PER_KIND} phần mỗi ngày thôi cháu!"
+            return {"ok": False, "reason": "kind_limit"}
+        price = int(MARKET_SELL_PRICES.get(kind, 10) * 1.5)
+        if self.carry_money < price:
+            self.market_last_note = "Ông Năm: Chưa đủ tiền rồi cháu ơi, bán bớt đồ dư hoặc đợi tối bán hàng nha!"
+            return {"ok": False, "reason": "funds"}
+        self.carry_money -= price
+        sim.money = self.carry_money
+        self.market_buys_today += 1
+        self.market_buys_by_kind[kind] = self.market_buys_by_kind.get(kind, 0) + 1
+        if isinstance(sim.stock, list):
+            new_id = sim.ids.new("I")
+            sim.stock.append(make_item(new_id, kind, self.tuning.get("freshness", {}).get("initial", 100)))
+            self.last_gather_inventory = {"items": [public_item(it) for it in sort_by_id(sim.stock)]}
+        else:
+            sim.stock[kind] = sim.stock.get(kind, 0) + 1
+            self.last_gather_inventory = {"items": dict(sim.stock)}
+        self.market_last_note = f"Ông Năm: Hàng tươi 100% ông mới kéo lưới lên (-{price}k), mang về nấu ngon nha cháu!"
+        self._emit_live_event("vendor_trade", {"action": "buy", "kind": kind, "price": price, "money": self.carry_money}, phase="market")
+        return {"ok": True, "action": "buy", "kind": kind, "price": price, "money": self.carry_money}
 
     def _buy_upgrade_locked(self, item_id: str) -> dict:
         if self.screen != "shop" or self.paused:
@@ -383,6 +509,7 @@ class LiveGame:
         self.carry_money -= cost
         self.session.sim.money = self.carry_money
         self.pending_upgrades[item_id] = cur_lvl + 1
+        self.shop_last_note = f"Anh Ba: Xong liền! Đã nâng cấp {spec['label']} lên Lv.{cur_lvl + 1} — mai ra sông khỏe re luôn Út Sen!"
         self._emit_live_event("bought", {"item": item_id, "level": cur_lvl + 1, "cost": cost, "money": self.carry_money}, phase="shop")
         return {"ok": True, "item": item_id, "level": cur_lvl + 1, "cost": cost}
 
@@ -432,12 +559,17 @@ class LiveGame:
                 "active_upgrades": dict(self.active_upgrades),
                 "pending_upgrades": dict(self.pending_upgrades),
                 "catalog": self._shop_cfg["items"],
+                "last_note": self.shop_last_note,
             }
+            snap["market"] = self._market_state_locked()
             snap["last_gather_inventory"] = self.last_gather_inventory
             snap["last_gather_reason"] = self.last_gather_reason
             snap["last_day_summary"] = self.last_day_summary
-            if self.mode == "day" and self.screen == "shop":
-                snap["phase"] = "shop"
+            if self.mode == "day" and self.screen in ("shop", "market", "evening_intro"):
+                if self.screen == "shop":
+                    snap["phase"] = "shop"
+                elif self.screen == "market":
+                    snap["phase"] = "market"
                 snap["money"] = self.carry_money
                 snap["earned"] = self.carry_earned
                 snap["reputation"] = self.carry_reputation
@@ -520,6 +652,56 @@ class LiveGame:
                     self.paused = not self.paused
                     self._emit_live_event("pause" if self.paused else "resumed", {"screen": self.screen})
                 return {"ok": True, "paused": self.paused}
+            if act == "close_quan":
+                if (self.screen == "playing" and not self.paused
+                        and getattr(self.session.sim, "mode", None) == "quan" and not self.session.done):
+                    self.session.sim.time_left_ticks = 1
+                    self._tick_once()
+                    return {"ok": True, "screen": self.screen}
+                return {"ok": False, "screen": self.screen}
+            if act == "drop_hold_item":
+                sim = self.session.sim
+                if getattr(sim, "mode", None) != "gather" or self.session.done:
+                    return {"ok": False, "reason": "wrong_phase"}
+                item_id = body.get("item_id")
+                idx = body.get("index")
+                if isinstance(item_id, str):
+                    pos = next((i for i, it in enumerate(sim.hold) if isinstance(it, dict) and it.get("id") == item_id), None)
+                    if pos is None:
+                        return {"ok": False, "reason": "not_found"}
+                    removed = sim.hold.pop(pos)
+                    self._emit_live_event("item_dropped", {"item_id": item_id, "kind": removed["kind"]}, phase="gather")
+                    return {"ok": True, "hold_count": len(sim.hold)}
+                if isinstance(idx, int) and not isinstance(idx, bool) and 0 <= idx < len(sim.hold):
+                    removed = sim.hold.pop(idx)
+                    kind = removed["kind"] if isinstance(removed, dict) else removed
+                    self._emit_live_event("item_dropped", {"index": idx, "kind": kind}, phase="gather")
+                    return {"ok": True, "hold_count": len(sim.hold)}
+                return {"ok": False, "reason": "not_found"}
+            if act == "open_market":
+                if self.mode == "day" and self.screen == "evening_intro" and not self.paused:
+                    self.screen = "market"
+                    self.market_last_note = ""
+                    self._emit_live_event("phase_start", {"day": self.day, "phase": "market"}, phase="market")
+                    return {"ok": True, "screen": self.screen}
+                return {"ok": False, "screen": self.screen}
+            if act == "market_sell":
+                kind = body.get("kind")
+                if not isinstance(kind, str):
+                    raise ValueError("kind phải là chuỗi")
+                return self._market_sell_locked(kind)
+            if act == "market_buy":
+                kind = body.get("kind")
+                if not isinstance(kind, str):
+                    raise ValueError("kind phải là chuỗi")
+                return self._market_buy_locked(kind)
+            if act == "close_market":
+                if self.screen == "market" and not self.paused:
+                    self.screen = "playing"
+                    self.screen_ticks_left = 0
+                    self._emit_live_event("phase_start", {"day": self.day, "phase": "quan"}, phase="quan")
+                    return {"ok": True, "screen": self.screen}
+                return {"ok": False, "screen": self.screen}
             if act == "menu":
                 self.paused = False
                 self.screen = "menu"
@@ -561,12 +743,20 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
-        elif path in ("/assets/cho-noi-sprites.png", "/assets/ut-sen-swim.png"):
+        elif path in ("/assets/cho-noi-sprites.png", "/assets/ut-sen-swim.png", "/assets/customers-sheet.png",
+                      "/assets/ut-sen-walk.png", "/assets/portraits-sheet.png",
+                      "/assets/thuy-quai.png", "/assets/song-nuoc.png"):
             try:
                 with open(os.path.join(WEB_DIR, path.lstrip("/")), "rb") as f:
                     self._send(200, f.read(), "image/png")
             except OSError:
                 self._send(404, b'{"error":"khong co sprite"}')
+        elif path == "/assets/title-bg.jpg":
+            try:
+                with open(os.path.join(WEB_DIR, "assets", "title-bg.jpg"), "rb") as f:
+                    self._send(200, f.read(), "image/jpeg")
+            except OSError:
+                self._send(404, b'{"error":"khong co title bg"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 

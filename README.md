@@ -74,7 +74,12 @@ Nhóm **Nicecentt** (6 thành viên — yêu cầu tối thiểu 2 mở rộng) 
 
 ## Sáng tạo của nhóm
 
-Bản trình duyệt có thêm cá kèo, cá rô đồng, kèo nèo và rau muống, cùng ba công thức cá kèo kho tộ, canh chua cá rô kèo nèo và rau muống xào (dữ liệu tại `chonoi/extra_content.json`), kèm bộ sprite màu nước và animation bơi 6 khung hình (`chonoi/web/assets/`). Bật bằng `python3 -m chonoi.live --mode gather --extra-content`; mặc định **tắt hoàn toàn ở chế độ headless** để giữ nguyên 100% Test Contract.
+Bản trình duyệt (`chonoi.live`) bổ sung các tính năng sáng tạo nâng cao trải nghiệm chơi, **tắt hoàn toàn ở chế độ headless** để giữ nguyên 100% Test Contract:
+- **Sổ tay Chợ Nổi (`📖 Sổ tay`, phím `B`) & Balo gọn (`🎒 Balo`, phím `I`):** ẩn nhãn chữ thô trên sông; thanh Balo dưới đáy gọn nhẹ hiển thị số lượng đang mang, nhấn `I` mở Balo xem từng món kèm độ tươi và có nút **Bỏ đồ** ra ngoài.
+- **Đối thoại cốt truyện & Chợ Ông Năm / Tiệm Anh Ba:** đầu mỗi sáng & chiều Út Sen trò chuyện với **Má Tư**; sau khi lặn xong có thể ghé **Chợ Ông Năm** bán đồ ngoài thực đơn và mua nguyên liệu thuộc thực đơn (giới hạn tối đa `3` phần/ngày, `2` phần/loại); cuối ngày ghé **Tiệm Anh Ba** chào hỏi hai chiều, mua nâng cấp Bình Oxy / Áo Phao / **Balo Lặn (`12 → 16 → 20` ô)** không giới hạn thời gian.
+- **Đóng quán sớm (`🏮 Đóng quán sớm`):** kết thúc ca tối sớm khi hết nguyên liệu hoặc đã xong lượt khách.
+- **Animation quán ăn 2.5D (`ut-sen-walk.png`, `customers-sheet.png`):** Út Sen có hoạt ảnh đi bộ tay không và bưng khay món ăn; mỗi bàn có **ghế gỗ** riêng với hoạt ảnh khách đi từ lối vào, hạ người ngồi xuống ghế sau mặt bàn, ngồi ăn có món trên bàn & hơi nóng bốc lên rồi đi bộ ra cửa.
+- **Nội dung mở rộng `--extra-content`:** thêm cá rô đồng, rau muống, công thức miền Tây mở rộng (`chonoi/extra_content.json`) và bộ sprite màu nước + animation bơi 6 khung hình (`chonoi/web/assets/`). Bật bằng `python3 -m chonoi.live --mode gather --extra-content`.
 
 ## Tài liệu & Truy vết
 

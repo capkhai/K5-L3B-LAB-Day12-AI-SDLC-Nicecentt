@@ -518,6 +518,239 @@
   }
   .shop-card.maxed { border-color: rgba(102, 187, 106, 0.5); }
   .screen-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+  .dialogue-box {
+    background: rgba(255, 243, 214, 0.08);
+    border: 1.5px solid rgba(246, 189, 96, 0.42);
+    border-radius: 14px;
+    padding: 12px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dialogue-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: calc(var(--hud-font) - 1px);
+    line-height: 1.4;
+  }
+  .speaker-tag {
+    flex-shrink: 0;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: calc(var(--hud-font) - 3px);
+    white-space: nowrap;
+  }
+  .speaker-tag.ut { background: rgba(255, 138, 61, 0.28); color: #ffcc80; border: 1px solid rgba(255, 167, 38, 0.6); }
+  .speaker-tag.matu { background: rgba(240, 98, 146, 0.26); color: #f8bbd0; border: 1px solid rgba(240, 98, 146, 0.6); }
+  .speaker-tag.anhba { background: rgba(79, 195, 247, 0.24); color: #b3e5fc; border: 1px solid rgba(79, 195, 247, 0.6); }
+  .speaker-tag.ongnam { background: rgba(102, 187, 106, 0.26); color: #c8e6c9; border: 1px solid rgba(102, 187, 106, 0.6); }
+
+  /* ---- Full-bleed Title Screen (Út Sen, Dì Tư, Anh Ba, Ông Năm) ---- */
+  .title-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 36;
+    display: none;
+    align-items: center;
+    background: #0b1720 url('/assets/title-bg.jpg') center right / cover no-repeat;
+    pointer-events: auto;
+  }
+  .title-screen.show { display: flex; }
+  .title-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(8, 18, 28, 0.86) 0%, rgba(8, 18, 28, 0.62) 38%, rgba(8, 18, 28, 0.14) 68%, rgba(8, 18, 28, 0.02) 100%);
+  }
+  .title-content {
+    position: relative;
+    z-index: 2;
+    max-width: 560px;
+    margin-left: clamp(28px, 6vw, 88px);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .title-kicker {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(246, 189, 96, 0.22);
+    border: 1.5px solid rgba(246, 189, 96, 0.72);
+    color: #ffe9b3;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .title-logo {
+    margin: 0;
+    font-size: clamp(38px, 5.2vw, 64px);
+    line-height: 1.06;
+    font-weight: 900;
+    color: #fff6dc;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.72), 0 0 28px rgba(246, 189, 96, 0.42);
+  }
+  .title-sub {
+    margin: 0;
+    font-size: clamp(16px, 1.5vw, 20px);
+    color: #e6f0f5;
+    line-height: 1.45;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  }
+  .title-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+    max-width: 280px;
+  }
+  .title-btn {
+    padding: 14px 24px;
+    border-radius: 14px;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    border: 2px solid rgba(255, 232, 189, 0.55);
+    transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .title-btn.start {
+    background: linear-gradient(135deg, #f6bd60, #e68a2e);
+    color: #1f1205;
+    border-color: #fff3cc;
+    box-shadow: 0 10px 28px rgba(246, 189, 96, 0.42);
+  }
+  .title-btn.start:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 34px rgba(246, 189, 96, 0.6); }
+  .title-btn.exit {
+    background: rgba(12, 26, 38, 0.84);
+    color: #f4f7f9;
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+  .title-btn.exit:hover { transform: translateY(-1px); background: rgba(183, 28, 28, 0.82); border-color: #ff8a80; }
+
+  /* ---- Dave-the-Diver Style Sequential Dialogue Box ---- */
+  .vn-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    display: none;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 24px 18px 26px;
+    background: linear-gradient(180deg, rgba(6, 16, 26, 0.28) 0%, rgba(6, 16, 26, 0.68) 100%);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .vn-layer.show { display: flex; }
+  .vn-wrap {
+    position: relative;
+    width: min(980px, 95vw);
+    min-height: 162px;
+    display: flex;
+    align-items: flex-end;
+  }
+  .vn-box {
+    position: relative;
+    width: 100%;
+    min-height: 152px;
+    padding: 24px 30px 44px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(10, 36, 54, 0.96) 0%, rgba(6, 22, 36, 0.98) 100%);
+    border: 2.5px solid #4fc3f7;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.72), inset 0 0 24px rgba(79, 195, 247, 0.14);
+  }
+  .vn-wrap.side-right .vn-box { padding-right: 235px; }
+  .vn-wrap.side-left .vn-box { padding-left: 235px; }
+  .vn-text {
+    font-size: clamp(18px, 1.8vw, 22px);
+    line-height: 1.5;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  }
+  .vn-text .hl { color: #64ffda; font-weight: 900; }
+  .vn-text .hl-gold { color: #ffd54f; font-weight: 900; }
+  .vn-portrait-slot {
+    position: absolute;
+    bottom: 20px;
+    width: 210px;
+    height: 210px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    animation: vnPop 0.18s ease-out;
+  }
+  @keyframes vnPop {
+    from { opacity: 0; transform: translateY(14px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .vn-wrap.side-right .vn-portrait-slot { right: 14px; }
+  .vn-wrap.side-left .vn-portrait-slot { left: 14px; }
+  .vn-portrait-img {
+    width: 205px;
+    height: 205px;
+    background-image: url('/assets/portraits-sheet.png');
+    background-size: 200% 200%;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.65));
+  }
+  .vn-nameplate {
+    position: absolute;
+    bottom: -14px;
+    min-width: 170px;
+    text-align: center;
+    padding: 5px 22px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffe58f 0%, #f0b849 100%);
+    border: 2px solid #fff7d6;
+    color: #241406;
+    font-weight: 900;
+    font-size: 18px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  }
+  .vn-prompt {
+    position: absolute;
+    bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #b3e5fc;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.92;
+  }
+  .vn-wrap.side-right .vn-prompt { left: 26px; }
+  .vn-wrap.side-left .vn-prompt { right: 26px; }
+  .vn-keycap {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    animation: blinkFast 1.2s infinite;
+  }
+  .mini-portrait {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(246, 189, 96, 0.55);
+    background-image: url('/assets/portraits-sheet.png');
+    background-size: 200% 200%;
+    background-repeat: no-repeat;
+  }
   .menu-hero {
     text-align: center;
     padding: 10px 0;
@@ -544,6 +777,7 @@
     <div class="hud-group" id="topCenter"></div>
     <div class="toolbar">
       <span class="meta-pill" id="connPill"><span class="dot" id="connDot"></span><span id="fpsLabel">-- FPS</span> · <span id="tickLabel">t0</span></span>
+      <button class="btn" id="btnGuide" type="button" title="Sổ tay Chợ Nổi — chú thích cá, rau, thủy quái & thực đơn (B)">📖 Sổ tay</button>
       <button class="btn" id="btnContrast" type="button" title="Chế độ tương phản cao (C)">🌓 Tương phản</button>
       <button class="btn" id="btnPause" type="button" title="Tạm dừng (Esc / P)">⏸</button>
       <button class="btn" id="btnLog" type="button" title="Nhật ký sự kiện (H)">📜 Log</button>
@@ -570,7 +804,35 @@
 
 <div class="banner" id="alertBanner"></div>
 
-<!-- Screen Overlay (Menu / DayIntro / EveningIntro / DayResult / Shop / Summary / Standalone End) -->
+<!-- Title Screen toàn màn hình (Út Sen, Dì Tư, Anh Ba, Ông Năm) -->
+<div class="title-screen" id="titleScreen">
+  <div class="title-scrim"></div>
+  <div class="title-content">
+    <span class="title-kicker">🏮 Miền Tây Sông Nước · Chợ Nổi</span>
+    <h1 class="title-logo">QUÁN ĂN<br>CHỢ NỔI</h1>
+    <p class="title-sub">Cùng <b>Út Sen</b>, <b>Dì Tư</b>, <b>Anh Ba</b> và <b>Ông Năm</b> lặn sông bắt cá, ghé chợ ghe và mở quán ăn qua mùa nước nổi.</p>
+    <div class="title-buttons">
+      <button class="title-btn start" id="btnTitleStart" type="button"><span>▶ Bắt đầu</span><span>Enter</span></button>
+      <button class="title-btn exit" id="btnTitleExit" type="button"><span>✕ Thoát</span><span></span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Hộp thoại từng lượt kiểu Dave the Diver -->
+<div class="vn-layer" id="vnDialogue">
+  <div class="vn-wrap side-right" id="vnWrap">
+    <div class="vn-box">
+      <div class="vn-text" id="vnText"></div>
+      <div class="vn-prompt"><span class="vn-keycap">Space / Click</span> <span id="vnStepHint">Tiếp tục ▼</span></div>
+    </div>
+    <div class="vn-portrait-slot" id="vnPortraitSlot">
+      <div class="vn-portrait-img" id="vnPortraitImg"></div>
+      <div class="vn-nameplate" id="vnNameplate">Dì Tư</div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen Overlay (DayIntro / EveningIntro / Market / DayResult / Shop / Summary / Standalone End) -->
 <div class="overlay-backdrop" id="screenModal">
   <div class="screen-card" id="screenCard"></div>
 </div>
@@ -586,6 +848,30 @@
       <button class="btn" id="btnPauseRestart" type="button">↻ Chơi lại từ đầu (R)</button>
       <button class="btn danger-btn" id="btnPauseMenu" type="button">🏠 Về Menu chính</button>
     </div>
+  </div>
+</div>
+
+<!-- Sổ tay Chợ Nổi (B): tra cứu hình ảnh cá, rau, thủy quái & thực đơn -->
+<div class="overlay-backdrop pause-layer" id="guideModal">
+  <div class="screen-card" style="width: min(820px, 100%);">
+    <h2 class="screen-title">
+      <span>📖 Sổ tay Chợ Nổi — Chú thích &amp; Thực đơn</span>
+      <button class="btn" id="btnGuideClose" type="button">✕ Đóng (B / Esc)</button>
+    </h2>
+    <p class="screen-sub">Tra cứu nhanh hình dạng nguyên liệu, vùng độ sâu, thủy quái và công thức món ăn (trò chơi tự tạm dừng khi mở sổ tay).</p>
+    <div id="guideBody" style="display:flex;flex-direction:column;gap:14px;"></div>
+  </div>
+</div>
+
+<!-- Balo của Út Sen (I): xem chi tiết từng món, độ tươi và bỏ bớt đồ ra ngoài -->
+<div class="overlay-backdrop pause-layer" id="bagModal">
+  <div class="screen-card" style="width: min(680px, 100%);">
+    <h2 class="screen-title">
+      <span id="bagTitle">🎒 Balo của Út Sen</span>
+      <button class="btn" id="btnBagClose" type="button">✕ Đóng (I / Esc)</button>
+    </h2>
+    <p class="screen-sub">Xem độ tươi từng nguyên liệu trong balo và bỏ bớt đồ dư hoặc hàng ươn để nhường chỗ bắt cá.</p>
+    <div id="bagBody" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -621,8 +907,26 @@ const evCountEl = document.getElementById("evCount");
 const alertBannerEl = document.getElementById("alertBanner");
 const screenModalEl = document.getElementById("screenModal");
 const screenCardEl = document.getElementById("screenCard");
+const titleScreenEl = document.getElementById("titleScreen");
+const btnTitleStart = document.getElementById("btnTitleStart");
+const btnTitleExit = document.getElementById("btnTitleExit");
+const vnDialogueEl = document.getElementById("vnDialogue");
+const vnWrapEl = document.getElementById("vnWrap");
+const vnTextEl = document.getElementById("vnText");
+const vnPortraitSlotEl = document.getElementById("vnPortraitSlot");
+const vnPortraitImgEl = document.getElementById("vnPortraitImg");
+const vnNameplateEl = document.getElementById("vnNameplate");
+const vnStepHintEl = document.getElementById("vnStepHint");
 const pauseModalEl = document.getElementById("pauseModal");
 const pauseSubEl = document.getElementById("pauseSub");
+const btnGuide = document.getElementById("btnGuide");
+const guideModalEl = document.getElementById("guideModal");
+const guideBodyEl = document.getElementById("guideBody");
+const btnGuideClose = document.getElementById("btnGuideClose");
+const bagModalEl = document.getElementById("bagModal");
+const bagTitleEl = document.getElementById("bagTitle");
+const bagBodyEl = document.getElementById("bagBody");
+const btnBagClose = document.getElementById("btnBagClose");
 const btnContrast = document.getElementById("btnContrast");
 const btnPause = document.getElementById("btnPause");
 const btnLog = document.getElementById("btnLog");
@@ -690,27 +994,81 @@ const REASON_LABEL = {
 };
 const CUSTOMER_COLORS = ["#f48fb1", "#90caf9", "#ffcc80", "#ce93d8", "#80cbc4", "#ef9a9a"];
 
-// Sprite sheets từ commit 7a5d7df & 351535b
+// Sprite sheets từ commit 7a5d7df, 351535b & khách quán Phase 4+
 const atlas = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
 atlas.src = "/assets/cho-noi-sprites.png";
 const swimSheet = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
 swimSheet.src = "/assets/ut-sen-swim.png";
+const customerSheet = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
+customerSheet.src = "/assets/customers-sheet.png";
+const utSenWalkSheet = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
+utSenWalkSheet.src = "/assets/ut-sen-walk.png";
+const wildlife = new Image();
+wildlife.src = "/assets/thuy-quai.png";
+const riverSheet = new Image();
+riverSheet.src = "/assets/song-nuoc.png";
+const RIVER_REGIONS = {
+  ca_linh: [0, 41, 614, 244], ca_loc: [622, 46, 632, 219],
+  ca_keo: [0, 307, 616, 202], ca_ro_dong: [642, 275, 612, 291],
+  bong_dien_dien: [0, 561, 622, 338], bong_sung: [629, 571, 625, 329],
+  keo_neo: [0, 905, 619, 312], rau_muong: [626, 908, 628, 319]
+};
+const MONSTER_REGIONS = { ca_sau: [0, 178, 1254, 340], ran: [0, 738, 1254, 340] };
+const CUSTOMER_ENTRANCE = [0.8, 0.7];
+const customerVisuals = new Map(); // id -> {x, z, tx, tz, row, state, sitProgress, eating, facingLeft}
+let utSenLastPos = null;
+let utSenFacingLeft = false;
+let utSenWalkPhase = 0;
+let guideOpen = false;
+let guideAutoPaused = false;
+let bagOpen = false;
+let bagAutoPaused = false;
+// Trạng thái hội thoại từng lượt (kiểu Dave the Diver)
+const PORTRAIT_META = {
+  ut_sen:  { name: "Út Sen",  pos: "0% 0%",     side: "left"  },
+  di_tu:   { name: "Dì Tư",   pos: "100% 0%",   side: "right" },
+  anh_ba:  { name: "Anh Ba",  pos: "0% 100%",   side: "right" },
+  ong_nam: { name: "Ông Năm", pos: "100% 100%", side: "right" }
+};
+const seenDialogues = new Set();
+let activeDialogue = null; // { key, lines: [{speaker, html}], idx }
 const SPRITES = {
   swim: [0, 125, 359, 227],
   serve: [354, 55, 230, 345],
   boat: [605, 128, 340, 195],
   stove: [956, 91, 284, 287],
   table: [8, 472, 292, 274],
-  ca_keo: [309, 554, 315, 122],
-  ca_ro_dong: [628, 498, 312, 219],
-  keo_neo: [942, 458, 312, 326],
-  rau_muong: [0, 871, 307, 334],
   ca_keo_kho_to: [309, 894, 314, 285],
   canh_chua_ca_ro_keo_neo: [624, 885, 313, 301],
   rau_muong_xao: [939, 908, 315, 253]
 };
 function sprite(key, x, y, size, angle = 0, flip = false) {
+  if (RIVER_REGIONS[key]) return drawSprite(riverSheet, RIVER_REGIONS[key], x, y, size, angle, flip);
   return drawSprite(atlas, SPRITES[key], x, y, size, angle, flip);
+}
+
+// Move the tail in a travelling wave while keeping the head steady at the simulation position.
+function drawSwimmingFish(fish, x, y, s) {
+  const region = RIVER_REGIONS[fish.kind];
+  if (!region || !riverSheet.naturalWidth) return false;
+  const [left, top, sw, sh] = region;
+  const angle = (fish.heading_deg || 0) * Math.PI / 180;
+  const phase = animTime * (fish.kind === "ca_loc" ? 4.8 : 7.2) + idHash(fish.id);
+  const width = s * (fish.kind === "ca_loc" ? 3.1 : 2.5);
+  const height = width * sh / sw;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  if (Math.cos(angle) < 0) ctx.scale(1, -1);
+  const bands = 12;
+  for (let i = 0; i < bands; i++) {
+    const u = i / bands;
+    const wave = Math.sin(phase + u * 5) * (1 - u) ** 2 * height * 0.17;
+    ctx.drawImage(riverSheet, left + sw * u, top, sw / bands, sh,
+      (u - 0.5) * width, wave - height / 2, width / bands + 0.22, height);
+  }
+  ctx.restore();
+  return true;
 }
 function drawSprite(image, region, x, y, size, angle = 0, flip = false) {
   if (!region || !image || !image.naturalWidth) return false;
@@ -773,6 +1131,33 @@ function compareIds(a, b) {
 
 // ---------- Trạng thái hiển thị phía client ----------
 let snap = null;
+let previousPose = new Map();
+let poseTime = 0;
+let poseInterval = 16;
+let strokePhase = 0;
+
+// Nội suy hai snapshot gần nhất ở lớp vẽ. HUD và thao tác vẫn đọc snapshot mới nhất.
+function updatePose(next, now) {
+  if (!snap || next.mode !== snap.mode || next.day !== snap.day || next.screen !== snap.screen ||
+      next.tick < snap.tick || next.tick - snap.tick > 6 || next.paused || snap.paused) {
+    previousPose.clear();
+    poseTime = now;
+    return;
+  }
+  if (next.tick === snap.tick) return;
+  previousPose.clear();
+  if (snap.player) previousPose.set("player", snap.player.pos);
+  for (const entity of [...(snap.fish || []), ...(snap.monsters || [])]) previousPose.set(entity.id, entity.pos);
+  poseInterval = Math.max(8, Math.min(70, now - poseTime));
+  poseTime = now;
+}
+
+function renderPos(key, pos) {
+  const from = previousPose.get(key);
+  if (!from) return pos;
+  const t = Math.min(1, Math.max(0, (lastFrameMs - poseTime) / poseInterval));
+  return [from[0] + (pos[0] - from[0]) * t, from[1] + (pos[1] - from[1]) * t];
+}
 let offline = false;
 let showLog = false;
 let soundOn = false;
@@ -821,7 +1206,7 @@ function soundForEvent(name) {
     case "paid":                       beep(587, 0.16, "triangle", 0.08, 988); break;
     case "cook_started": case "dish_picked": case "served": beep(440, 0.08, "sine", 0.05, 520); break;
     case "hold_full": case "no_dish": case "buy_failed":    beep(220, 0.12, "sawtooth", 0.04, 180); break;
-    case "monster_hit": case "oxygen_empty": case "choke": case "customer_left": case "faint": case "dish_burned":
+    case "monster_hit": case "oxygen_empty": case "choke": case "customer_left": case "faint": case "dish_burnt":
       beep(175, 0.22, "sawtooth", 0.07, 95); break;
     case "gather_end": case "quan_end": case "shop_end":    beep(523, 0.22, "triangle", 0.06, 659); break;
   }
@@ -917,6 +1302,39 @@ addEventListener("keydown", (e) => {
   const scr = snap ? (snap.screen || "playing") : "playing";
 
   // Phím Esc / P tạm dừng ở mọi trạng thái chơi (kể cả Intro & Shop)
+  if (code === "KeyB" || k === "b") {
+    e.preventDefault();
+    if (bagOpen) closeBag();
+    toggleGuide();
+    return;
+  }
+  if ((code === "KeyI" || k === "i") && snap && snap.mode === "gather" && (snap.screen || "playing") === "playing") {
+    e.preventDefault();
+    if (guideOpen) closeGuide();
+    toggleBag();
+    return;
+  }
+  if (bagOpen && code === "Escape") {
+    e.preventDefault();
+    closeBag();
+    return;
+  }
+  if (guideOpen && code === "Escape") {
+    e.preventDefault();
+    closeGuide();
+    return;
+  }
+  if (activeDialogue) {
+    if (code === "Space" || code === "Enter") {
+      e.preventDefault();
+      advanceDialogue();
+    } else if (code === "Escape") {
+      e.preventDefault();
+      finishDialogue();
+    }
+    return;
+  }
+  if (guideOpen || bagOpen) return;
   if (code === "Escape" || code === "KeyP" || k === "p") {
     if (scr !== "menu" && scr !== "exited" && scr !== "summary") {
       e.preventDefault();
@@ -938,9 +1356,17 @@ addEventListener("keydown", (e) => {
     if (code === "Enter" || code === "Space") { e.preventDefault(); sendAction("start"); }
     return;
   }
-  if (scr === "day_intro" || scr === "evening_intro") {
-    e.preventDefault();
-    sendAction("skip_intro");
+  if (scr === "day_intro") {
+    if (code === "Enter" || code === "Space") { e.preventDefault(); sendAction("skip_intro"); }
+    return;
+  }
+  if (scr === "evening_intro") {
+    if (code === "Enter" || code === "Space") { e.preventDefault(); sendAction("skip_intro"); return; }
+    if (code === "KeyM" || k === "m") { e.preventDefault(); sendAction("open_market"); return; }
+    return;
+  }
+  if (scr === "market") {
+    if (code === "Enter" || code === "Space") { e.preventDefault(); sendAction("close_market"); }
     return;
   }
   if (scr === "day_result") {
@@ -950,6 +1376,7 @@ addEventListener("keydown", (e) => {
   if (scr === "shop") {
     if (code === "Digit1" || k === "1") { e.preventDefault(); sendAction("buy", { item: "oxygen" }); return; }
     if (code === "Digit2" || k === "2") { e.preventDefault(); sendAction("buy", { item: "hp" }); return; }
+    if (code === "Digit3" || k === "3") { e.preventDefault(); sendAction("buy", { item: "bag" }); return; }
     if (code === "Enter" || code === "Space") { e.preventDefault(); sendAction("shop_done"); return; }
     return;
   }
@@ -983,7 +1410,7 @@ function describeEvent(ev) {
     case "surface":        return { cat: "info",   text: "Nổi lên mặt nước — hồi oxy" };
     case "oxygen_empty":   return { cat: "bad",    text: "💨 Hết hơi! Cạn sạch oxy!" };
     case "choke":          return { cat: "bad",    text: "Ngạt nước! -1 Máu" };
-    case "monster_hit":    return { cat: "purple", text: `🐊 Thủy quái ${d.monster_id || ""} tấn công! -1 Máu` };
+    case "monster_hit":    return { cat: "purple", text: "🐊 Bị thủy quái cắn! −1 máu" };
     case "faint":          return { cat: "bad",    text: d.cause === "monster" ? "Út Sen ngất do Thủy quái!" : "Út Sen ngất do ngạt nước!" };
     case "gather": {
       const k = d.kind || d.item || "";
@@ -995,13 +1422,7 @@ function describeEvent(ev) {
       const qty = d.qty || d.count || d.yield || "";
       return { cat: "good", text: `Bắt được ${qty ? "+" + qty + " " : ""}${k ? kindMeta(k).name : "cá"}` };
     }
-    case "fish_spawned": {
-      const k = d.kind || "";
-      return { cat: "info", text: `Đàn ${k ? kindMeta(k).name : "cá"} mới xuất hiện (${d.fish_id || d.id || ""})` };
-    }
-    case "node_regrown":   return { cat: "info",   text: `Nút ${d.node_id || ""} đã mọc lại` };
     case "hold_full":      return { cat: "warn",   text: "Giỏ đã đầy — về bến gửi hàng!" };
-    case "gather_end":     return { cat: "info",   text: `Kết thúc buổi sáng (${d.reason || ""})` };
     case "customer_arrived": {
       const dish = extractDishId(d.dish_id || d.dish);
       return { cat: "info", text: `Khách ${d.order_id || d.customer_id || d.id || ""} gọi ${dish ? dishMeta(dish).short : "món"}` };
@@ -1015,7 +1436,7 @@ function describeEvent(ev) {
       const dish = extractDishId(d.dish_id || d.dish);
       return { cat: "good", text: `Món chín: ${dish ? dishMeta(dish).short : ""} (${d.stove_id || ""})` };
     }
-    case "dish_burned":    return { cat: "bad",    text: `🔥 Cháy món tại bếp ${d.stove_id || ""}!` };
+    case "dish_burnt":     return { cat: "bad",    text: `🔥 Cháy món tại bếp ${d.stove_id || ""}!` };
     case "dish_picked": {
       const dish = extractDishId(d.dish_id || d.dish);
       return { cat: "info", text: `Bưng món ${dish ? dishMeta(dish).short : ""}` };
@@ -1029,16 +1450,11 @@ function describeEvent(ev) {
     case "customer_left":  return { cat: "bad",    text: `Khách ${d.order_id || d.customer_id || d.id || ""} bỏ đi!` };
     case "bought":         return { cat: "good",   text: `Mua nâng cấp ${d.item || ""} Lv.${d.level || ""} (-${d.cost || 0}k)` };
     case "buy_failed":     return { cat: "warn",   text: `Không thể mua ${d.item || ""}: ${d.reason === "insufficient_money" ? "Không đủ tiền" : d.reason === "max_level" ? "Đã tối đa" : d.reason || ""}` };
-    case "shop_end":       return { cat: "info",   text: "Đóng cửa hàng — sang ngày mới" };
     case "pause":          return { cat: "info",   text: "Đã tạm dừng" };
     case "resumed":        return { cat: "info",   text: "Tiếp tục chơi" };
-    case "day_start":      return { cat: "info",   text: `Bắt đầu Ngày ${d.day || ""}` };
-    case "quan_end":       return { cat: "info",   text: `Hết ca tối · Thu ${d.shift_earned ?? d.earned ?? 0}k` };
-    default: {
-      let s = "";
-      try { s = JSON.stringify(d); if (s.length > 48) s = s.slice(0, 45) + "…"; } catch (e) {}
-      return { cat: "info", text: `${ev.name} ${s}` };
-    }
+    case "current_warning": return { cat: "warn", text: "🌊 Sắp có dòng nước lũ!" };
+    case "spoiled": return { cat: "warn", text: `${kindMeta(d.kind).name} vừa ươn` };
+    default: return null;
   }
 }
 
@@ -1066,11 +1482,12 @@ function ingestEvents(events) {
       monsterHitFlashUntilMs = now + 1800;
     }
     const info = describeEvent(ev);
+    soundForEvent(ev.name);
+    if (!info) continue;
     const col = info.cat === "good" ? "#a5d6a7" : info.cat === "warn" ? "#ffcc80" : info.cat === "bad" ? "#ff8a80" : info.cat === "purple" ? "#ea80fc" : "#b3e5fc";
     const worldPos = snap && snap.player && snap.player.pos ? [...snap.player.pos] : null;
     toasts.push({ text: info.text, color: col, bornMs: now, worldPos });
     if (toasts.length > 8) toasts.shift();
-    soundForEvent(ev.name);
   }
 }
 
@@ -1085,6 +1502,8 @@ async function poll() {
       lastEvWatermark = { tick: -1, seenAtTick: 0 };
     }
     lastTick = next.tick;
+    updatePose(next, performance.now());
+    if (snap && (next.mode !== snap.mode || next.screen !== snap.screen)) toasts = [];
     snap = next;
     offline = false;
     ingestEvents(snap.events);
@@ -1239,11 +1658,10 @@ function updateHudDom() {
 
   // Event drawer
   const evs = snap.events || [];
-  evCountEl.textContent = `${evs.length}`;
-  const evHtml = evs.slice().reverse().map((ev) => {
-    const info = describeEvent(ev);
+  const messages = evs.map(describeEvent).filter(Boolean);
+  evCountEl.textContent = `${messages.length}`;
+  const evHtml = messages.reverse().map((info) => {
     return `<div class="ev-row ${info.cat}">
-      <div class="ev-top"><span>${escapeHtml(ev.name)}</span><span class="ev-tick">t${ev.tick}</span></div>
       <div class="ev-desc">${escapeHtml(info.text)}</div>
     </div>`;
   }).join("");
@@ -1252,8 +1670,9 @@ function updateHudDom() {
     eventListEl.innerHTML = evHtml || `<div style="color:var(--muted);padding:6px;">Chưa có sự kiện nào.</div>`;
   }
 
-  // Pause overlay (Esc / P)
-  pauseModalEl.classList.toggle("show", Boolean(snap.paused));
+  // Pause overlay (Esc / P — không đè lên Sổ tay hoặc Balo)
+  pauseModalEl.classList.toggle("show", Boolean(snap.paused) && !guideOpen && !bagOpen);
+  if (bagOpen) renderBagContent();
   if (snap.paused) {
     pauseSubEl.textContent = snap.screen === "shop"
       ? "Cửa hàng (Shop) và mọi bộ đếm đã tạm dừng."
@@ -1403,18 +1822,16 @@ function updateHudDom() {
       }).join("");
 
       bottomLeftEl.innerHTML = `
-        <div class="hold-section">
-          <div class="hold-header">
-            <span><b>Giỏ:</b> ${holdCount}/${cap}</span>
-            ${isFull ? `<span class="badge danger">ĐẦY GIỎ · VỀ BẾN (E)</span>` : ""}
-            ${totalSpoiled > 0 ? `<span class="badge danger">⚠ ${totalSpoiled} HÀNG ƯƠN</span>` : ""}
-            <div class="chips">${holdChips || `<span class="chip-sub">(Trống)</span>`}</div>
-            ${matuChips ? `<span style="color:var(--accent);font-weight:700;">Má Tư:</span><div class="chips">${matuChips}</div>` : ""}
-          </div>
-          <div class="hold-slots">${slotsHtml}</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
+          <button class="btn ${isFull ? "danger-btn" : "primary"}" id="btnOpenBag" style="pointer-events:auto;" type="button" title="Nhấn phím I để mở Balo xem chi tiết & bỏ đồ">
+            🎒 Balo: <b>${holdCount}/${cap}</b> <span class="chip-sub">[I]</span>
+          </button>
+          ${isFull ? `<span class="badge danger">ĐẦY BALO · VỀ BẾN (E)</span>` : ""}
+          ${totalSpoiled > 0 ? `<span class="badge danger">⚠ ${totalSpoiled} HÀNG ƯƠN</span>` : ""}
+          ${matuChips ? `<span style="color:var(--accent);font-weight:700;">Má Tư dặn:</span><div class="chips">${matuChips}</div>` : `<div class="chips">${holdChips || `<span class="chip-sub">(Balo trống)</span>`}</div>`}
         </div>
       `;
-      bottomRightEl.innerHTML = `<span><kbd>WASD</kbd> Bơi</span><span><kbd>E</kbd> Hái/Bến</span><span><kbd>Space</kbd> Bắt</span><span><kbd>Esc</kbd> Dừng</span>`;
+      bottomRightEl.innerHTML = `<span><kbd>WASD</kbd> Bơi</span><span><kbd>E</kbd> Hái/Bến</span><span><kbd>Space</kbd> Bắt</span><span><kbd>I</kbd> Balo</span><span><kbd>B</kbd> Sổ tay</span>`;
     }
   } else {
     // QUAN mode HUD v1.1
@@ -1427,10 +1844,18 @@ function updateHudDom() {
       ? snap.last_day_summary.shift_earned
       : (snap.shift_earned ?? snap.earned ?? 0);
 
+    const stockPreview = snap.stock || [];
+    const availCheck = computeAvailableStock(stockPreview, customers);
+    const liveMenuTop = snap.menu || {};
+    const anyCookableNow = Object.values(liveMenuTop).some((def) => def && canCookWith(def.recipe, availCheck.available));
+    const anyStoveBusy = stoves.some((st) => st.state === "cooking" || st.state === "ready");
+    const noOrdersLeft = !anyCookableNow && !anyStoveBusy && !handDish && customers.length === 0;
+    const canCloseEarly = (snap.screen || "playing") === "playing" && !snap.finished;
+
     const topKey = JSON.stringify([
       "quan", snap.day, snap.days_total, Math.ceil((snap.time_left_ticks || 0) / 60), lowTime,
       snap.money, shiftEarned, snap.reputation, snap.score, handDish, handOrderId,
-      stoves.length, customers.length, (snap.tables || []).length
+      stoves.length, customers.length, (snap.tables || []).length, noOrdersLeft, canCloseEarly
     ]);
     if (topKey !== lastTopKey) {
       lastTopKey = topKey;
@@ -1450,6 +1875,7 @@ function updateHudDom() {
         </div>
         <span class="chip">🔥 Bếp: <b>${stoves.length}</b></span>
         <span class="chip">🪑 Khách: <b>${customers.length}/${(snap.tables || []).length}</b></span>
+        ${canCloseEarly ? `<button class="btn ${noOrdersLeft ? "primary" : ""}" id="btnCloseQuan" style="pointer-events:auto;" type="button" title="Đóng quán sớm để kết thúc ca tối và sang Shop">${noOrdersLeft ? "🏮 Hết nguyên liệu · Đóng quán sớm" : "🏮 Đóng sớm"}</button>` : ""}
       `;
     }
 
@@ -1508,15 +1934,153 @@ function updateHudDom() {
   updateScreenOverlay();
 }
 
+function buildDialogueForScreen(scr, snapObj) {
+  const dayNum = snapObj.day || 1;
+  if (scr === "day_intro") {
+    const scripts = {
+      1: [
+        { speaker: "di_tu",  html: `Sáng rồi Út Sen ơi! Bữa nay mở hàng ngày đầu, con lặn kiếm <span class="hl">Cá lóc</span> với hái <span class="hl">Bông súng</span> tươi về cho Dì Tư nướng trui đãi khách nghe!` },
+        { speaker: "ut_sen", html: `Dạ Dì Tư yên tâm! Con đeo kính lặn xuống sông liền, nhớ canh <span class="hl-gold">Oxy</span> với né thủy quái dưới sâu là ngon lành!` }
+      ],
+      2: [
+        { speaker: "di_tu",  html: `Mùa nước nổi <span class="hl">Cá linh</span> về đặc sông rồi đó con! Tối nay khách thèm <span class="hl-gold">Lẩu cá linh bông điên điển</span> lắm, con vớt đàn thật tươi nghen!` },
+        { speaker: "ut_sen", html: `Dạ Dì! Con mang balo xuống vớt <span class="hl">Cá linh</span> với hái <span class="hl">Bông điên điển</span> liền đây!` }
+      ],
+      3: [
+        { speaker: "di_tu",  html: `Bữa nay nước sâu có thêm <span class="hl-gold">Cá Sấu Năm Chèo</span> với <span class="hl-gold">Rắn Hổ Mây</span>. Con lặn bắt <span class="hl">Cá kèo</span> nhớ coi chừng, thấy nguy là nổi lên liền nha con!` },
+        { speaker: "ut_sen", html: `Con nhớ lời Dì Tư dặn rồi! Con lấy đủ <span class="hl">Cá kèo</span> với <span class="hl">Bông súng</span> rồi quay về bến sớm!` }
+      ],
+      4: [
+        { speaker: "di_tu",  html: `Tối nay quán mình nấu nồi <span class="hl-gold">Lẩu Mắm miền Tây</span> đặc sản! Cần đủ <span class="hl">Cá linh, Cá kèo, Kèo nèo, Điên điển</span> — thiếu chút đỉnh thì ghé chợ <span class="hl-gold">Ông Năm</span> mua phụ cũng được!` },
+        { speaker: "ut_sen", html: `Nghe <span class="hl-gold">Lẩu Mắm</span> là con thấy thơm nức mũi rồi Dì Tư ơi! Để con đi gom nguyên liệu tươi rói về liền!` }
+      ],
+      5: [
+        { speaker: "di_tu",  html: `Ngày hội chợ nổi cuối mùa rồi Út Sen! Hai dì cháu mình làm bữa tối thật hoành tráng cho khách nhớ mãi quán ghe nhà mình nha con!` },
+        { speaker: "ut_sen", html: `Dạ Dì Tư! Con quyết tâm mang về giỏ nguyên liệu <span class="hl">tươi 100%</span> cho buổi tối nay luôn!` }
+      ]
+    };
+    return scripts[dayNum] || scripts[1];
+  }
+  if (scr === "evening_intro") {
+    const items = (snapObj.last_gather_inventory && snapObj.last_gather_inventory.items) || [];
+    const total = Array.isArray(items) ? items.length : Object.values(items).reduce((a, b) => a + b, 0);
+    const fainted = snapObj.last_gather_reason === "fainted";
+    if (fainted) {
+      return [
+        { speaker: "ut_sen", html: `Dì Tư ơi, hồi nãy dưới sông con đuối sức quá nên làm rớt hết nguyên liệu rồi…` },
+        { speaker: "di_tu",  html: `Trời ơi, con bình an lên bờ là Dì mừng rồi! Ghé ghe <span class="hl-gold">Chợ Ông Năm</span> mua đỡ ít nguyên liệu rồi mình nhóm bếp mở quán nghen con.` }
+      ];
+    }
+    if (total === 0) {
+      return [
+        { speaker: "ut_sen", html: `Dì Tư ơi, sáng nay con về bến tay không mất rồi…` },
+        { speaker: "di_tu",  html: `Không sao đâu con, chạy qua <span class="hl-gold">Chợ Ông Năm</span> mua phụ vài phần tươi rồi hai dì cháu mình mở quán!` }
+      ];
+    }
+    return [
+      { speaker: "ut_sen", html: `Dì Tư ơi con cập bến rồi! Sáng nay con mang về <span class="hl">${total} nguyên liệu</span> còn tươi rói luôn nè!` },
+      { speaker: "di_tu",  html: `Giỏi quá Út Sen của Dì! Có món nào dư ngoài thực đơn thì mang ra bán cho <span class="hl-gold">Ông Năm</span> kiếm thêm tiền, rồi tối nay mình mở quán nha con!` }
+    ];
+  }
+  if (scr === "market") {
+    return [
+      { speaker: "ut_sen",  html: `Cháu chào <span class="hl-gold">Ông Năm</span>! Cháu mới lặn xong, ghé ghe ông bán ít đồ dư với coi mua phụ vài món nấu tối nay ạ!` },
+      { speaker: "ong_nam", html: `Haha chào cháu <span class="hl-gold">Út Sen</span>! Đồ ngoài thực đơn hôm nay cứ bán lại cho ông giá hời, còn nguyên liệu thực đơn ông nhường tối đa <span class="hl">3 phần/ngày</span> (tươi 100%) cho vui chợ nha cháu!` }
+    ];
+  }
+  if (scr === "shop") {
+    return [
+      { speaker: "ut_sen", html: `Em chào <span class="hl-gold">Anh Ba</span>! Quán mới đóng cửa, em ghé tiệm coi nâng cấp đồ nghề cho ngày mai lặn khỏe hơn ạ!` },
+      { speaker: "anh_ba", html: `Chào <span class="hl-gold">Út Sen</span>! Cứ thong thả lựa <span class="hl">Bình Oxy, Áo Phao</span> với <span class="hl">Balo Lặn</span> đi em — tiệm anh Ba không tính giờ đâu, ưng món nào anh lấy liền!` }
+    ];
+  }
+  return null;
+}
+
+function renderActiveDialogue() {
+  if (!activeDialogue) {
+    vnDialogueEl.classList.remove("show");
+    return;
+  }
+  const line = activeDialogue.lines[activeDialogue.idx];
+  const meta = PORTRAIT_META[line.speaker] || PORTRAIT_META.di_tu;
+  vnWrapEl.className = `vn-wrap side-${meta.side}`;
+  vnTextEl.innerHTML = line.html;
+  vnPortraitImgEl.style.backgroundPosition = meta.pos;
+  vnNameplateEl.textContent = meta.name;
+  // Trigger pop-in nhẹ mỗi lần đổi người nói
+  vnPortraitSlotEl.style.animation = "none";
+  void vnPortraitSlotEl.offsetWidth;
+  vnPortraitSlotEl.style.animation = "";
+  const isLast = activeDialogue.idx >= activeDialogue.lines.length - 1;
+  vnStepHintEl.textContent = isLast ? "Hoàn tất hội thoại ▼" : `Tiếp tục (${activeDialogue.idx + 1}/${activeDialogue.lines.length}) ▼`;
+  vnDialogueEl.classList.add("show");
+}
+
+function startDialogueIfNeeded(scr, snapObj) {
+  const key = `${scr}|d${snapObj.day || 1}|t${snapObj.days_completed || 0}`;
+  if (seenDialogues.has(key)) return false;
+  if (activeDialogue && activeDialogue.key === key) return true;
+  const lines = buildDialogueForScreen(scr, snapObj);
+  if (!lines || !lines.length) return false;
+  activeDialogue = { key, lines, idx: 0 };
+  renderActiveDialogue();
+  return true;
+}
+
+function advanceDialogue() {
+  if (!activeDialogue) return;
+  if (activeDialogue.idx + 1 < activeDialogue.lines.length) {
+    activeDialogue.idx += 1;
+    renderActiveDialogue();
+  } else {
+    finishDialogue();
+  }
+}
+
+function finishDialogue() {
+  if (!activeDialogue) return;
+  seenDialogues.add(activeDialogue.key);
+  activeDialogue = null;
+  vnDialogueEl.classList.remove("show");
+  lastScreenKey = "";
+  updateScreenOverlay();
+}
+
+if (vnDialogueEl) vnDialogueEl.addEventListener("click", () => advanceDialogue());
+if (btnTitleStart) btnTitleStart.addEventListener("click", () => { btnTitleStart.blur(); seenDialogues.clear(); sendAction("start"); });
+if (btnTitleExit) btnTitleExit.addEventListener("click", () => { btnTitleExit.blur(); sendAction("exit"); });
+
 function updateScreenOverlay() {
   const scr = snap.screen || (snap.finished ? "standalone_end" : "playing");
   const showOverlay = scr !== "playing" || (snap.finished && snap.live_mode !== "day");
   const effectiveScreen = (snap.finished && snap.live_mode !== "day" && scr === "playing") ? "standalone_end" : scr;
 
+  // Title Screen toàn màn hình cho menu chính
+  const isTitleMenu = effectiveScreen === "menu";
+  if (titleScreenEl) titleScreenEl.classList.toggle("show", isTitleMenu);
+  if (isTitleMenu) {
+    screenModalEl.classList.remove("show");
+    if (activeDialogue) { activeDialogue = null; vnDialogueEl.classList.remove("show"); }
+    seenDialogues.clear();
+    return;
+  }
+
+  // Hội thoại từng lượt trước khi hiện bảng lựa chọn của day_intro / evening_intro / market / shop
+  if (["day_intro", "evening_intro", "market", "shop"].includes(effectiveScreen)) {
+    if (startDialogueIfNeeded(effectiveScreen, snap)) {
+      screenModalEl.classList.remove("show");
+      return;
+    }
+  } else if (activeDialogue) {
+    activeDialogue = null;
+    vnDialogueEl.classList.remove("show");
+  }
+
   const key = JSON.stringify([
     showOverlay, effectiveScreen, snap.day, snap.days_total, snap.days_completed,
-    Math.ceil((snap.screen_ticks_left || 0) / 15),
-    snap.shop && [snap.shop.open, Math.ceil((snap.shop.ticks_left || 0) / 15), snap.shop.pending_upgrades],
+    snap.shop && [snap.shop.open, snap.shop.pending_upgrades, snap.shop.last_note],
+    snap.market && [snap.market.open, snap.market.sellable, snap.market.buyable, snap.market.buys_used, snap.market.last_note],
     snap.money, snap.earned, snap.reputation, snap.score, snap.reason,
     snap.last_gather_inventory, snap.last_day_summary, snap.active_upgrades
   ]);
@@ -1529,24 +2093,7 @@ function updateScreenOverlay() {
   }
   screenModalEl.classList.add("show");
 
-  if (effectiveScreen === "menu") {
-    screenCardEl.innerHTML = `
-      <div class="menu-hero">
-        <span class="badge day">Quán Ăn Chợ Nổi · Miền Tây</span>
-        <h1>🏮 Quán Ăn Chợ Nổi</h1>
-        <p class="screen-sub">Cùng Út Sen lặn bắt cá, hái rau buổi sáng rồi tối mở quán phục vụ khách qua ${snap.days_total || 5} ngày chợ nổi!</p>
-        <div class="chips" style="justify-content:center;">
-          <span class="chip">🌊 Sáng: Lặn & Hái</span>
-          <span class="chip">🏮 Tối: Nấu & Phục vụ</span>
-          <span class="chip">🛒 Shop: Nâng cấp Oxy & Máu</span>
-        </div>
-        <div class="menu-actions">
-          <button class="btn primary" data-act="start" type="button">▶ Chơi ngay (Enter)</button>
-          <button class="btn danger-btn" data-act="exit" type="button">✕ Thoát</button>
-        </div>
-      </div>
-    `;
-  } else if (effectiveScreen === "exited") {
+  if (effectiveScreen === "exited") {
     screenCardEl.innerHTML = `
       <div class="menu-hero">
         <h1>Hẹn gặp lại ở Chợ Nổi!</h1>
@@ -1558,8 +2105,7 @@ function updateScreenOverlay() {
     `;
   } else if (effectiveScreen === "day_intro") {
     const plan = snap.day_plan || { day: snap.day || 1, dishes: [], needed: {} };
-    const sec = Math.max(0, Math.ceil((snap.screen_ticks_left || 0) / 60));
-    const frac = Math.max(0, Math.min(100, ((snap.screen_ticks_left || 0) / 240) * 100));
+    const dayNum = snap.day || 1;
     const dishesHtml = (plan.dishes || []).map((id) => {
       const m = dishMeta(id);
       return `<span class="chip">${m.icon} <b>${m.name}</b>${m.price ? ` (${m.price}k)` : ""}</span>`;
@@ -1570,24 +2116,24 @@ function updateScreenOverlay() {
     }).join("");
     const up = snap.active_upgrades || {};
     screenCardEl.innerHTML = `
-      <h2 class="screen-title"><span>🌅 Ngày ${snap.day || 1} / ${snap.days_total || 5} — Danh sách Má Tư</span><span class="badge gather">${sec}s</span></h2>
-      <p class="screen-sub">Má Tư dặn hôm nay chuẩn bị các món sau cho buổi tối:</p>
+      <h2 class="screen-title"><span>🌅 Sáng Ngày ${dayNum} / ${snap.days_total || 5} — Thực đơn Dì Tư</span></h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="mini-portrait" style="background-position:100% 0%;"></div>
+        <div class="screen-sub" style="margin:0;">Dì Tư dặn chuẩn bị đủ nguyên liệu dưới đây cho bữa tối hôm nay:</div>
+      </div>
       <div class="chips">${dishesHtml || `<span class="chip-sub">Thực đơn tự do</span>`}</div>
-      <p class="screen-sub" style="margin-top:2px;">Nguyên liệu gợi ý cần lấy buổi sáng:</p>
       <div class="chips">${neededHtml}</div>
       <div class="chips">
         <span class="chip">🫧 Bình Oxy: <b>Lv.${up.oxygen || 0}</b></span>
-        <span class="chip">❤️ Máu tối đa: <b>Lv.${up.hp || 0}</b></span>
+        <span class="chip">❤️ Máu: <b>Lv.${up.hp || 0}</b></span>
+        <span class="chip">🎒 Balo: <b>Lv.${up.bag || 0}</b></span>
       </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${frac.toFixed(1)}%;background:#4fc3f7;"></div></div>
       <div class="screen-actions">
-        <button class="btn primary" data-act="skip_intro" type="button">🌊 Bắt đầu lặn (Phím bất kỳ)</button>
+        <button class="btn primary" data-act="skip_intro" type="button">🌊 Dạ Dì Tư, con đi lặn đây! (Enter)</button>
       </div>
     `;
   } else if (effectiveScreen === "evening_intro") {
     const items = (snap.last_gather_inventory && snap.last_gather_inventory.items) || [];
-    const sec = Math.max(0, Math.ceil((snap.screen_ticks_left || 0) / 60));
-    const frac = Math.max(0, Math.min(100, ((snap.screen_ticks_left || 0) / 210) * 100));
     let invHtml = "";
     if (Array.isArray(items)) {
       const grp = {};
@@ -1613,22 +2159,86 @@ function updateScreenOverlay() {
       }).join("");
     }
     screenCardEl.innerHTML = `
-      <h2 class="screen-title"><span>🌇 Chuyển sang Buổi Tối — Mở Quán (Ngày ${snap.day || 1})</span><span class="badge quan">${sec}s</span></h2>
-      <p class="screen-sub">${REASON_LABEL[snap.last_gather_reason] || "Hoàn thành buổi sáng — chuẩn bị đón khách!"}</p>
-      <div class="stat-box">
-        <div class="k">Kho nguyên liệu mang về bếp</div>
-        <div class="chips" style="margin-top:8px;">${invHtml || `<span style="color:var(--muted);">Kho trống — cẩn thận hết nguyên liệu!</span>`}</div>
+      <h2 class="screen-title"><span>🌇 Chiều Ngày ${snap.day || 1} — Chuẩn bị mở quán cùng Dì Tư</span></h2>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="mini-portrait" style="background-position:100% 0%;"></div>
+        <div class="screen-sub" style="margin:0;">${REASON_LABEL[snap.last_gather_reason] || "Hoàn thành buổi lặn — kiểm kho trước khi nhóm bếp!"}</div>
       </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${frac.toFixed(1)}%;background:#f6bd60;"></div></div>
+      <div class="stat-box">
+        <div class="k">Kho nguyên liệu hiện có</div>
+        <div class="chips" style="margin-top:8px;">${invHtml || `<span style="color:var(--muted);">Kho trống — bạn có thể ghé Chợ Ông Năm mua đỡ ít nguyên liệu!</span>`}</div>
+      </div>
       <div class="screen-actions">
-        <button class="btn primary" data-act="skip_intro" type="button">🏮 Mở quán ngay (Phím bất kỳ)</button>
+        <button class="btn" data-act="open_market" type="button">🛶 Ghé Chợ Ông Năm (Mua/Bán · M)</button>
+        <button class="btn primary" data-act="skip_intro" type="button">🏮 Nhóm bếp mở quán ngay (Enter)</button>
+      </div>
+    `;
+  } else if (effectiveScreen === "market") {
+    const mk = snap.market || {};
+    const sellable = mk.sellable || {};
+    const buyable = mk.buyable || {};
+    const sellPrices = mk.sell_prices || {};
+    const money = snap.money ?? 0;
+    const buysUsed = mk.buys_used || 0;
+    const buysMax = mk.buys_max || 3;
+
+    const sellRows = Object.keys(sellable).sort().map((k) => {
+      const km = kindMeta(k);
+      const qty = sellable[k];
+      const price = sellPrices[k] || 5;
+      return `<div class="shop-card" style="padding:10px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span><span class="chip-swatch" style="background:${km.color};display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;"></span><b>${escapeHtml(km.name)}</b> (còn ${qty})</span>
+          <button class="btn primary" data-msell="${k}" type="button">Bán +${price}k</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    const buyRows = Object.keys(buyable).sort().map((k) => {
+      const km = kindMeta(k);
+      const info = buyable[k];
+      const canBuy = info.remaining > 0 && money >= info.price;
+      return `<div class="shop-card" style="padding:10px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div>
+            <span><span class="chip-swatch" style="background:${km.color};display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;"></span><b>${escapeHtml(km.name)}</b></span>
+            <div class="chip-sub">Còn mua được: ${info.remaining} · Tươi 100%</div>
+          </div>
+          <button class="btn ${canBuy ? "primary" : ""}" data-mbuy="${k}" ${canBuy ? "" : "disabled"} type="button">
+            ${info.remaining <= 0 ? "Hết lượt" : `Mua ${info.price}k`}
+          </button>
+        </div>
+      </div>`;
+    }).join("");
+
+    screenCardEl.innerHTML = `
+      <h2 class="screen-title">
+        <span>🛶 Chợ ghe của Ông Năm (Ngày ${snap.day || 1})</span>
+        <span class="stat-pill gold">Tiền: ${money}k</span>
+      </h2>
+      <div class="dialogue-box" style="flex-direction:row;align-items:center;gap:12px;">
+        <div class="mini-portrait" style="background-position:100% 100%;"></div>
+        <div class="dialogue-line"><span class="speaker-tag ongnam">Ông Năm</span><span>“${escapeHtml(mk.last_note || `Đồ dư ngoài thực đơn cứ bán cho ông, còn mua nguyên liệu thực đơn thì tối đa ${buysMax} phần hôm nay nha cháu!`)}”</span></div>
+      </div>
+      <div class="screen-grid">
+        <div>
+          <div style="font-weight:800;color:var(--green);margin-bottom:6px;">💰 Bán đồ ngoài thực đơn hôm nay</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">${sellRows || `<div class="stat-box"><span class="chip-sub">Không có nguyên liệu tươi nào ngoài thực đơn hôm nay để bán.</span></div>`}</div>
+        </div>
+        <div>
+          <div style="font-weight:800;color:var(--accent);margin-bottom:6px;">🧺 Mua nguyên liệu thực đơn (${buysUsed}/${buysMax} lượt hôm nay)</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">${buyRows || `<div class="stat-box"><span class="chip-sub">Chưa có mục thực đơn.</span></div>`}</div>
+        </div>
+      </div>
+      <div class="screen-actions">
+        <button class="btn primary" data-act="close_market" type="button">🏮 Cảm ơn Ông Năm — Về mở quán! (Enter)</button>
       </div>
     `;
   } else if (effectiveScreen === "day_result") {
     const sum = snap.last_day_summary || {};
     screenCardEl.innerHTML = `
       <h2 class="screen-title"><span>🌙 Tổng kết Ngày ${sum.day || snap.day || 1}</span></h2>
-      <p class="screen-sub">Hết ca tối! Hãy ghé Cửa hàng (Shop) để nâng cấp cho Ngày ${(sum.day || snap.day || 1) + 1}.</p>
+      <p class="screen-sub">Hết ca tối! Ghé tiệm đồ nghề của Anh Ba để nâng cấp chuẩn bị cho Ngày ${(sum.day || snap.day || 1) + 1}.</p>
       <div class="screen-grid">
         <div class="stat-box"><div class="k">Tiền kiếm được ca này</div><div class="v" style="color:var(--accent);">${sum.shift_earned ?? 0}k</div></div>
         <div class="stat-box"><div class="k">Tiền hiện có</div><div class="v" style="color:var(--accent);">${sum.money ?? snap.money ?? 0}k</div></div>
@@ -1636,16 +2246,13 @@ function updateScreenOverlay() {
         <div class="stat-box"><div class="k">Điểm hiện tại</div><div class="v" style="color:#a5d6a7;">${sum.score ?? snap.score ?? 0}</div></div>
       </div>
       <div class="screen-actions">
-        <button class="btn primary" data-act="open_shop" type="button">🛒 Vào Cửa hàng — Shop (Enter)</button>
+        <button class="btn primary" data-act="open_shop" type="button">🛒 Ghé tiệm của Anh Ba (Enter)</button>
       </div>
     `;
   } else if (effectiveScreen === "shop") {
     const shop = snap.shop || {};
     const catalog = shop.catalog || {};
     const pending = shop.pending_upgrades || {};
-    const tLeft = shop.ticks_left || 0;
-    const tMax = shop.ticks_max || 600;
-    const frac = Math.max(0, Math.min(100, (tLeft / Math.max(1, tMax)) * 100));
     const money = snap.money ?? 0;
 
     const cardFor = (itemId, hotkey, emoji) => {
@@ -1668,17 +2275,20 @@ function updateScreenOverlay() {
 
     screenCardEl.innerHTML = `
       <h2 class="screen-title">
-        <span>🛒 Cửa hàng nâng cấp (Sau Ngày ${snap.day || 1})</span>
-        <span class="clock ${tLeft <= 180 ? "low" : ""}">⏱ ${fmtTime(tLeft)}</span>
+        <span>🛒 Tiệm đồ nghề của Anh Ba (Sau Ngày ${snap.day || 1})</span>
+        <span class="stat-pill gold">Tiền: ${money}k</span>
       </h2>
-      <p class="screen-sub">Tiền hiện có: <b style="color:var(--accent);">${money}k</b> · Nâng cấp có hiệu lực từ đầu Ngày ${(snap.day || 1) + 1}. (Nhấn <b>Esc/P</b> để tạm dừng cả timer Shop)</p>
-      <div class="bar-track"><div class="bar-fill" style="width:${frac.toFixed(1)}%;background:#f6bd60;"></div></div>
-      <div class="screen-grid">
+      <div class="dialogue-box" style="flex-direction:row;align-items:center;gap:12px;">
+        <div class="mini-portrait" style="background-position:0% 100%;"></div>
+        <div class="dialogue-line"><span class="speaker-tag anhba">Anh Ba</span><span>“${escapeHtml(shop.last_note || "Cứ thong thả lựa bình oxy, áo phao với balo lặn đi Út Sen — tiệm anh Ba không giới hạn thời gian đâu!")}”</span></div>
+      </div>
+      <div class="screen-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
         ${cardFor("oxygen", "1", "🫧")}
         ${cardFor("hp", "2", "❤️")}
+        ${catalog.bag ? cardFor("bag", "3", "🎒") : ""}
       </div>
       <div class="screen-actions">
-        <button class="btn primary" data-act="shop_done" type="button">🌅 Đóng Shop — Sang Ngày ${(snap.day || 1) + 1} (Enter)</button>
+        <button class="btn primary" data-act="shop_done" type="button">🌅 Chào anh Ba — Sang Ngày ${(snap.day || 1) + 1} (Enter)</button>
       </div>
     `;
   } else if (effectiveScreen === "summary") {
@@ -1695,6 +2305,7 @@ function updateScreenOverlay() {
       <div class="chips">
         <span class="chip">🫧 Bình Oxy: <b>Lv.${up.oxygen || 0}</b></span>
         <span class="chip">❤️ Tăng Máu: <b>Lv.${up.hp || 0}</b></span>
+        <span class="chip">🎒 Balo Lặn: <b>Lv.${up.bag || 0}</b></span>
         <span class="chip">✅ Khách trả tiền: <b>${sessionStats.paid}</b></span>
         <span class="chip">⚠ Khách bỏ đi: <b>${sessionStats.left}</b></span>
       </div>
@@ -1738,14 +2349,241 @@ function updateScreenOverlay() {
   }
 }
 
-// Event delegation cho nút trong Screen Overlay
+// Event delegation cho nút trong Screen Overlay & nút Đóng quán sớm trên HUD
+topCenterEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("#btnCloseQuan");
+  if (!btn || btn.disabled) return;
+  btn.blur();
+  sendAction("close_quan");
+});
+
+function renderGuideThumb(canvas, kind) {
+  const gctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  gctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2;
+  const reg = RIVER_REGIONS[kind] || MONSTER_REGIONS[kind] || SPRITES[kind];
+  const sheet = RIVER_REGIONS[kind] ? riverSheet : MONSTER_REGIONS[kind] ? wildlife : atlas;
+  if (reg && sheet.naturalWidth) {
+    const [left, top, sw, sh] = reg;
+    const sc = Math.min((w - 8) / sw, (h - 8) / sh);
+    const dw = sw * sc, dh = sh * sc;
+    gctx.drawImage(sheet, left, top, sw, sh, cx - dw / 2, cy - dh / 2, dw, dh);
+    return;
+  }
+  const km = kindMeta(kind);
+  gctx.save();
+  gctx.translate(cx, cy);
+  if (kind === "bong_dien_dien") {
+    gctx.fillStyle = "#3f8c4d"; gctx.beginPath(); gctx.ellipse(0, 12, 18, 6, 0, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = km.color;
+    for (const [dx, dy] of [[-7, -2], [5, -6], [-1, -12], [9, 2]]) { gctx.beginPath(); gctx.arc(dx, dy, 6, 0, Math.PI * 2); gctx.fill(); }
+  } else if (kind === "bong_sung") {
+    gctx.fillStyle = "#3f8c4d"; gctx.beginPath(); gctx.ellipse(0, 12, 18, 6, 0, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = km.color;
+    for (let a = -2; a <= 2; a++) { gctx.beginPath(); gctx.ellipse(a * 4.5, 0, 4.5, 11, a * 0.25, 0, Math.PI * 2); gctx.fill(); }
+  } else if (kind === "ca_linh") {
+    for (const [ox, oy] of [[2, -7], [-6, 6], [8, 5]]) {
+      gctx.fillStyle = km.color; gctx.beginPath(); gctx.ellipse(ox, oy, 10, 4.5, 0, 0, Math.PI * 2); gctx.fill();
+      gctx.fillStyle = km.accent; gctx.beginPath(); gctx.moveTo(ox - 9, oy); gctx.lineTo(ox - 16, oy - 5); gctx.lineTo(ox - 16, oy + 5); gctx.closePath(); gctx.fill();
+    }
+  } else if (kind === "ca_loc") {
+    gctx.fillStyle = km.color; gctx.beginPath(); gctx.ellipse(2, 0, 16, 7, 0, 0, Math.PI * 2); gctx.fill();
+    gctx.beginPath(); gctx.moveTo(-12, 0); gctx.lineTo(-22, -7); gctx.lineTo(-22, 7); gctx.closePath(); gctx.fill();
+    gctx.fillStyle = "#fff"; gctx.beginPath(); gctx.arc(11, -2, 2.5, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = "#111"; gctx.beginPath(); gctx.arc(12, -2, 1.3, 0, Math.PI * 2); gctx.fill();
+  } else if (kind === "ca_sau") {
+    gctx.fillStyle = "#386e44"; gctx.beginPath(); gctx.ellipse(-2, 0, 16, 7, 0, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = "#2e5c38"; gctx.beginPath(); gctx.ellipse(14, 0, 9, 4, 0, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = "#8bc34a"; gctx.beginPath(); gctx.moveTo(-8, -7); gctx.lineTo(-4, -12); gctx.lineTo(0, -7); gctx.fill();
+    gctx.fillStyle = "#ffd54f"; gctx.beginPath(); gctx.arc(10, -3, 2.2, 0, Math.PI * 2); gctx.fill();
+  } else if (kind === "ran") {
+    gctx.strokeStyle = "#558b2f"; gctx.lineWidth = 7; gctx.lineCap = "round";
+    gctx.beginPath(); gctx.moveTo(-18, 6); gctx.quadraticCurveTo(-6, -12, 4, 0); gctx.quadraticCurveTo(12, 10, 18, -2); gctx.stroke();
+    gctx.fillStyle = "#ffeb3b"; gctx.beginPath(); gctx.arc(16, -4, 2.2, 0, Math.PI * 2); gctx.fill();
+  }
+  gctx.restore();
+}
+
+function renderGuideContent() {
+  const floraFauna = [
+    { kind: "bong_dien_dien", where: "Mặt nước (d = 0m)", note: "Hái bằng [E] · 1 ô/lần · Mọc lại 20s" },
+    { kind: "bong_sung",      where: "Mặt nước (d = 0m)", note: "Hái bằng [E] · 1 ô/lần · Mọc lại 20s" },
+    { kind: "keo_neo",        where: "Mặt nước (d = 0m)", note: "Hái bằng [E] · 1 ô/lần · Mọc lại 20s" },
+    { kind: "ca_linh",        where: "Nông (d = 3–12m)",  note: "Bắt [Space] · 3 con/đàn (cần 3 ô trống)" },
+    { kind: "ca_loc",         where: "Giữa (d = 8–20m)",  note: "Bắt [Space] · 1 con/đàn" },
+    { kind: "ca_keo",         where: "Sâu (d = 22–28m)",  note: "Bắt [Space] · 2 con/đàn (cẩn thận Cá Sấu!)" }
+  ];
+  const monsters = [
+    { kind: "ca_sau", name: "Cá Sấu Năm Chèo", where: "Vùng sâu 10–30 m", note: "Có thể đuổi theo khi bạn đến gần. Bị cắn sẽ mất máu và rơi một nửa số hàng trong giỏ." },
+    { kind: "ran",    name: "Rắn Hổ Mây", where: "Vùng nước 8–20 m", note: "Bơi lên vùng nước nông hơn 8 m để cắt đuôi." }
+  ];
+  const fullMenu = (snap && (snap.full_menu || snap.menu)) || {};
+  if (fullMenu.rau_muong_xao) floraFauna.push(
+    { kind: "rau_muong", where: "Mặt nước", note: "Hái bằng [E] để làm rau muống xào." },
+    { kind: "ca_ro_dong", where: "Dưới mặt nước", note: "Bắt bằng [Space] để nấu canh chua." }
+  );
+
+  const cardsHtml = floraFauna.map((item) => {
+    const km = kindMeta(item.kind);
+    return `<div class="stat-box" style="display:flex;align-items:center;gap:10px;">
+      <canvas class="guide-thumb" data-kind="${item.kind}" width="54" height="54" style="width:54px;height:54px;flex-shrink:0;background:rgba(255,255,255,0.06);border-radius:10px;"></canvas>
+      <div>
+        <div style="font-weight:800;color:${km.color};">${escapeHtml(km.name)}</div>
+        <div class="k">${escapeHtml(item.where)}</div>
+        <div class="chip-sub">${escapeHtml(item.note)}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const monsterHtml = monsters.map((m) => `
+    <div class="stat-box" style="display:flex;align-items:center;gap:10px;border-color:rgba(206,147,216,0.45);">
+      <canvas class="guide-thumb" data-kind="${m.kind}" width="54" height="54" style="width:54px;height:54px;flex-shrink:0;background:rgba(156,39,176,0.16);border-radius:10px;"></canvas>
+      <div>
+        <div style="font-weight:800;color:#e1bee7;">${escapeHtml(m.name)}</div>
+        <div class="k">${escapeHtml(m.where)}</div>
+        <div class="chip-sub">${escapeHtml(m.note)}</div>
+      </div>
+    </div>`).join("");
+
+  const menuRows = Object.entries(fullMenu).map(([id, def]) => {
+    const di = dishMeta(id);
+    const rec = Object.entries(def.recipe || {}).map(([k, q]) => `${kindMeta(k).short} ×${q}`).join(" + ");
+    return `<span class="chip" style="padding:6px 10px;">${di.icon} <b>${escapeHtml(di.name)}</b> · ${escapeHtml(rec)} · <b style="color:var(--accent);">${def.price}k</b> (${def.cook_s}s)</span>`;
+  }).join("");
+
+  guideBodyEl.innerHTML = `
+    <div>
+      <div style="font-weight:800;color:var(--cyan);margin-bottom:6px;">🌿 Nguyên liệu &amp; Loài cá</div>
+      <div class="screen-grid">${cardsHtml}</div>
+    </div>
+    <div>
+      <div style="font-weight:800;color:var(--purple);margin-bottom:6px;">🐊 Thủy quái &amp; Dòng nước lũ</div>
+      <div class="screen-grid">${monsterHtml}</div>
+    </div>
+    <div>
+      <div style="font-weight:800;color:var(--accent);margin-bottom:6px;">🍲 Thực đơn Quán Ăn (độ tươi càng cao, giá bán càng sát niêm yết; &lt;30% sẽ ươn)</div>
+      <div class="chips">${menuRows || `<span class="chip-sub">Đang tải thực đơn…</span>`}</div>
+    </div>
+  `;
+  guideBodyEl.querySelectorAll("canvas.guide-thumb").forEach((c) => renderGuideThumb(c, c.dataset.kind));
+}
+
+function openGuide() {
+  if (guideOpen) return;
+  guideOpen = true;
+  renderGuideContent();
+  guideModalEl.classList.add("show");
+  if (btnGuide) btnGuide.classList.add("active");
+  const scr = (snap && snap.screen) || "playing";
+  if (snap && !snap.paused && scr !== "menu" && scr !== "exited" && scr !== "summary") {
+    guideAutoPaused = true;
+    sendAction("pause");
+  } else {
+    guideAutoPaused = false;
+  }
+}
+function closeGuide() {
+  if (!guideOpen) return;
+  guideOpen = false;
+  guideModalEl.classList.remove("show");
+  if (btnGuide) btnGuide.classList.remove("active");
+  if (guideAutoPaused) {
+    guideAutoPaused = false;
+    sendAction("resume");
+  }
+}
+function toggleGuide() {
+  if (guideOpen) closeGuide(); else openGuide();
+}
+if (btnGuide) btnGuide.addEventListener("click", () => { btnGuide.blur(); toggleGuide(); });
+if (btnGuideClose) btnGuideClose.addEventListener("click", () => { btnGuideClose.blur(); closeGuide(); });
+
+// Balo chi tiết [I] + bỏ đồ ra ngoài
+bottomLeftEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("#btnOpenBag");
+  if (!btn) return;
+  btn.blur();
+  toggleBag();
+});
+function renderBagContent() {
+  if (!snap) return;
+  const hold = snap.hold || [];
+  const cap = snap.hold_capacity || (snap.meta && snap.meta.hold_capacity) || 12;
+  if (bagTitleEl) bagTitleEl.textContent = `🎒 Balo của Út Sen (${hold.length}/${cap} ô)`;
+  if (!hold.length) {
+    bagBodyEl.innerHTML = `<div class="stat-box" style="text-align:center;"><span class="chip-sub">Balo đang trống — hãy hái rau trên mặt nước hoặc lặn bắt cá nhé!</span></div>`;
+    return;
+  }
+  const rowsHtml = hold.map((entry, idx) => {
+    const isObj = entry && typeof entry === "object";
+    const kind = isObj ? entry.kind : entry;
+    const iid = isObj ? entry.id : null;
+    const fresh = isObj && typeof entry.fresh === "number" ? entry.fresh : 100;
+    const spoiled = fresh < 30;
+    const km = kindMeta(kind);
+    const barCol = spoiled ? "#ef5350" : fresh < 60 ? "#ffa726" : "#66bb6a";
+    const dropAttr = iid ? `data-drop-id="${escapeHtml(iid)}"` : `data-drop-idx="${idx}"`;
+    return `<div class="stat-box" style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-color:${spoiled ? "rgba(239,83,80,0.75)" : "rgba(255,255,255,0.14)"};">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="chip-swatch" style="background:${km.color};width:11px;height:11px;border-radius:50%;display:inline-block;"></span>
+          <b>${escapeHtml(km.name)}</b>
+          ${iid ? `<span class="chip-sub">(${escapeHtml(iid)})</span>` : ""}
+          ${spoiled ? `<span class="badge danger">ƯƠN · KHÔNG NẤU ĐƯỢC</span>` : `<span class="chip-sub" style="color:${barCol};">Tươi ${Math.floor(fresh)}%</span>`}
+        </div>
+        <div class="bar-track" style="margin-top:6px;"><div class="bar-fill" style="width:${Math.max(0, Math.min(100, fresh)).toFixed(1)}%;background:${barCol};"></div></div>
+      </div>
+      <button class="btn danger-btn" ${dropAttr} type="button">🗑 Bỏ</button>
+    </div>`;
+  }).join("");
+  bagBodyEl.innerHTML = rowsHtml;
+}
+function openBag() {
+  if (bagOpen || !snap || snap.mode !== "gather") return;
+  bagOpen = true;
+  renderBagContent();
+  bagModalEl.classList.add("show");
+  const scr = snap.screen || "playing";
+  if (!snap.paused && scr === "playing") {
+    bagAutoPaused = true;
+    sendAction("pause");
+  } else {
+    bagAutoPaused = false;
+  }
+}
+function closeBag() {
+  if (!bagOpen) return;
+  bagOpen = false;
+  bagModalEl.classList.remove("show");
+  if (bagAutoPaused) {
+    bagAutoPaused = false;
+    sendAction("resume");
+  }
+}
+function toggleBag() {
+  if (bagOpen) closeBag(); else openBag();
+}
+if (btnBagClose) btnBagClose.addEventListener("click", () => { btnBagClose.blur(); closeBag(); });
+bagBodyEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  btn.blur();
+  if (btn.dataset.dropId) { sendAction("drop_hold_item", { item_id: btn.dataset.dropId }); }
+  else if (btn.dataset.dropIdx !== undefined) { sendAction("drop_hold_item", { index: Number(btn.dataset.dropIdx) }); }
+});
+
 screenCardEl.addEventListener("click", (e) => {
   const btn = e.target.closest("button");
   if (!btn || btn.disabled) return;
   const act = btn.dataset.act;
   const buy = btn.dataset.buy;
+  const msell = btn.dataset.msell;
+  const mbuy = btn.dataset.mbuy;
   btn.blur();
   if (buy) { sendAction("buy", { item: buy }); return; }
+  if (msell) { sendAction("market_sell", { kind: msell }); return; }
+  if (mbuy) { sendAction("market_buy", { kind: mbuy }); return; }
   if (act === "restart") { restartGame(); return; }
   if (act) { sendAction(act); }
 });
@@ -1830,14 +2668,13 @@ function drawBar(x, y, w, h, frac, color, markerFrac = null) {
 
 // ---------- Vẽ Cá Sấu Năm Chèo (M1/M2) & Rắn Hổ Mây (M3) ----------
 function drawMonster(m, sx, sy, s) {
-  const mx = sx(m.pos[0]), my = sy(m.pos[1]);
+  const pos = renderPos(m.id, m.pos);
+  const mx = sx(pos[0]), my = sy(pos[1]);
   const isChase = m.state === "chase";
   const isRecoil = m.state === "recoil";
   const isSnake = String(m.kind || "").toLowerCase().includes("snake") || String(m.kind || "").toLowerCase().includes("ran") || m.id === "M3";
-  let ang = ((m.heading_deg || 0) * Math.PI) / 180;
-  if (m.vel && Math.hypot(m.vel[0] || 0, m.vel[1] || 0) > 0.05) {
-    ang = Math.atan2(m.vel[1], m.vel[0]);
-  }
+  const target = isChase || isRecoil ? snap.player?.pos : m.waypoints?.[m.target_idx];
+  const ang = target ? Math.atan2(target[1] - pos[1], target[0] - pos[0]) : 0;
   const wag = Math.sin(animTime * (isChase ? 14 : 6) + idHash(m.id)) * 0.25;
 
   // Vòng nguy hiểm & hào quang tím khi đuổi
@@ -1862,9 +2699,22 @@ function drawMonster(m, sx, sy, s) {
   ctx.save();
   ctx.translate(mx, my);
   ctx.rotate(ang);
+  if (Math.cos(ang) < 0) ctx.scale(1, -1);
   if (isRecoil) ctx.globalAlpha = 0.65;
 
-  if (isSnake) {
+  if (wildlife.naturalWidth) {
+    // Sóng chạy dọc thân, biên độ nhỏ gần đầu và lớn dần về đuôi.
+    const width = (isSnake ? 4.8 : 5.8) * s;
+    const height = width * 340 / 1254;
+    const phase = animTime * (isChase ? 9 : 4.5) + idHash(m.id);
+    const strips = 24;
+    for (let i = 0; i < strips; i++) {
+      const u = i / strips;
+      const bend = Math.sin(phase + u * 6) * (1 - u) ** 2 * s * (isSnake ? 0.46 : 0.24);
+      ctx.drawImage(wildlife, u * 1254, isSnake ? 738 : 178, 1254 / strips, 340,
+        (u - 0.5) * width, bend - height / 2, width / strips + 0.25, height);
+    }
+  } else if (isSnake) {
     // Rắn Hổ Mây (M3 mở rộng)
     ctx.strokeStyle = isChase ? "#ba68c8" : "#558b2f";
     ctx.lineWidth = 0.52 * s;
@@ -1930,11 +2780,6 @@ function drawMonster(m, sx, sy, s) {
   }
   ctx.restore();
 
-  const stText = isChase ? "ĐUỔI!" : isRecoil ? "Choáng" : "Tuần tra";
-  drawPillLabel(`${m.id || "M"} · ${stText}`, mx, my - 1.25 * s,
-    isChase ? "rgba(123,31,162,0.92)" : "rgba(16,28,38,0.84)",
-    isChase ? "#fff" : "#e1bee7",
-    isChase ? "#ea80fc" : "rgba(206,147,216,0.5)", 11);
 }
 
 // ---------- Vẽ cảnh GATHER ----------
@@ -2084,7 +2929,11 @@ function drawGather(w, h, dt) {
     }
     ctx.save();
     ctx.globalAlpha = ready ? 1 : 0.35;
-    if (!sprite(n.kind, nx, ny - 0.45 * s, 1.8 * s)) {
+    const ripple = animTime * 1.8 + n.pos[0] * 0.17;
+    const floating = n.kind === "bong_sung";
+    const sway = Math.sin(ripple) * (floating ? 0.025 : 0.075);
+    const lift = Math.cos(ripple) * (floating ? 0.09 : 0.045);
+    if (!sprite(n.kind, nx, ny - (0.43 + lift) * s, (ready ? 2.75 : 1.85) * s, sway)) {
       ctx.fillStyle = "#3f8c4d";
       ctx.beginPath();
       ctx.ellipse(nx, ny + 0.1 * s, 1.15 * s, 0.35 * s, 0, 0, Math.PI * 2);
@@ -2112,7 +2961,10 @@ function drawGather(w, h, dt) {
       }
     }
     ctx.restore();
-    drawText(`${n.id} ${km.short}`, nx, ny - 1.75 * s, { size: 11, bold: true, align: "center", color: "#193342" });
+    // Chỉ hiện nhãn tên nút khi người chơi lại gần mục tiêu hoặc bật chế độ Tương phản cao (xem chú thích đầy đủ trong Sổ tay [B])
+    if (isTarget || document.body.classList.contains("high-contrast")) {
+      drawText(`${km.short}`, nx, ny - 1.75 * s, { size: 11, bold: true, align: "center", color: "#193342" });
+    }
     if (!ready && n.regrow_ticks > 0) {
       const frac = 1 - Math.min(1, n.regrow_ticks / Math.max(1, regrowMaxTicks));
       ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 2.5;
@@ -2126,7 +2978,8 @@ function drawGather(w, h, dt) {
   // Đàn cá (ca_linh, ca_loc, ca_keo, ca_ro_dong)
   const yields = meta.fish_yield || { ca_linh: 3, ca_loc: 1, ca_keo: 2 };
   for (const f of snap.fish || []) {
-    const fx = sx(f.pos[0]), fy = sy(f.pos[1]);
+    const pos = renderPos(f.id, f.pos);
+    const fx = sx(pos[0]), fy = sy(pos[1]);
     const km = kindMeta(f.kind);
     const isTarget = hint && hint.type === "fish" && hint.id === f.id;
     const wag = Math.sin(animTime * 6 + idHash(f.id)) * 0.16;
@@ -2135,7 +2988,7 @@ function drawGather(w, h, dt) {
       ctx.beginPath(); ctx.arc(fx, fy, 1.55 * s, 0, Math.PI * 2); ctx.stroke();
     }
     const fAng = ((f.heading_deg || 0) * Math.PI) / 180;
-    if (!sprite(f.kind, fx, fy, 2.3 * s, fAng, true)) {
+    if (!drawSwimmingFish(f, fx, fy, s)) {
       ctx.save(); ctx.translate(fx, fy); ctx.rotate(fAng);
       if (f.kind === "ca_linh") {
         for (const [oxf, oyf, sc] of [[0, -0.32, 0.72], [-0.45, 0.25, 0.65], [0.42, 0.22, 0.65]]) {
@@ -2161,10 +3014,33 @@ function drawGather(w, h, dt) {
       }
       ctx.restore();
     }
-    const yld = yields[f.kind];
-    drawText(`${f.id} ${km.short}${yld ? " ×" + yld : ""}`, fx, fy - 1.0 * s, {
-      size: 11, bold: isTarget, align: "center", color: isTarget ? "#b9f6ca" : "rgba(235,248,255,0.88)", shadow: true
-    });
+    // Ẩn chữ đè lên đàn cá để giữ khung cảnh tự nhiên; chỉ hiện khi nằm trong tầm bắt hoặc bật Tương phản cao
+    if (isTarget || document.body.classList.contains("high-contrast")) {
+      const yld = yields[f.kind];
+      drawText(`${km.short}${yld ? " ×" + yld : ""}`, fx, fy - 1.0 * s, {
+        size: 11, bold: isTarget, align: "center", color: isTarget ? "#b9f6ca" : "rgba(235,248,255,0.88)", shadow: true
+      });
+    }
+  }
+
+  // Dòng nước lũ trực quan khi `current` đang hoạt động (d >= 10m)
+  if (snap.current && snap.current.direction) {
+    const dir = snap.current.direction;
+    ctx.save();
+    ctx.strokeStyle = "rgba(128, 222, 234, 0.42)";
+    ctx.lineWidth = 2.2;
+    for (let row = 0; row < 6; row++) {
+      const cd = 11.5 + row * 3.1;
+      if (cd > D - 1) break;
+      const offset = ((animTime * 22 * dir + row * 17) % (X + 20) + (X + 20)) % (X + 20) - 10;
+      for (let k = 0; k < 4; k++) {
+        const cx = ((offset + k * 27) % X + X) % X;
+        const x1 = sx(cx), x2 = sx(Math.max(0, Math.min(X, cx + dir * 5.5))), cy = sy(cd);
+        ctx.beginPath(); ctx.moveTo(x1, cy); ctx.lineTo(x2, cy); ctx.stroke();
+      }
+    }
+    drawPillLabel(`🌊 DÒNG LŨ ${dir > 0 ? "→" : "←"} (${Math.ceil((snap.current.ticks_left || 0) / 60)}s)`, sx(X / 2), sy(11.2), "rgba(0,96,100,0.88)", "#e0f7fa", "#4dd0e1", 12);
+    ctx.restore();
   }
 
   // Thủy quái (Cá Sấu Năm Chèo M1/M2 & Rắn Hổ Mây M3)
@@ -2191,7 +3067,8 @@ function drawGather(w, h, dt) {
 
   // Út Sen
   if (p && p.pos) {
-    const px = sx(p.pos[0]), py = sy(p.pos[1]);
+    const pos = renderPos("player", p.pos);
+    const px = sx(pos[0]), py = sy(pos[1]);
     const underwater = p.at_surface === undefined ? p.pos[1] > surfD : !p.at_surface;
     const cd = p.catch_cd_ticks || 0;
     const cdMax = Math.round((meta.catch_cooldown_s || 0.5) * 60);
@@ -2214,10 +3091,11 @@ function drawGather(w, h, dt) {
       const ang = ((p.heading_deg || 0) * Math.PI) / 180;
       const facingLeft = Math.cos(ang) < 0;
       const spriteAngle = facingLeft ? ang - Math.PI : ang;
-      const moving = !snap.finished && !snap.paused && p.vel && Math.hypot(p.vel[0] || 0, p.vel[1] || 0) > 0;
-      const swimFrame = Math.floor((snap.tick || 0) / 6) % 6;
+      const speed = p.vel ? Math.hypot(...p.vel) : 0;
+      if (speed && !snap.finished && !snap.paused) strokePhase = (strokePhase + dt * (4 + speed * 1.5)) % 6;
+      const swimFrame = speed ? Math.floor(strokePhase) : 0;
       const swimRegion = [(swimFrame % 2) * 512, Math.floor(swimFrame / 2) * 512 + 100, 512, 330];
-      const animated = moving && drawSprite(swimSheet, swimRegion, px, py, 3.4 * s, spriteAngle, facingLeft);
+      const animated = (speed > 0 || underwater) && drawSprite(swimSheet, swimRegion, px, py, 3.4 * s, spriteAngle, facingLeft);
       if (!animated && !sprite("swim", px, py, 2.8 * s, spriteAngle, facingLeft)) {
         ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
         ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.ellipse(0, 0, 0.85 * s, 0.52 * s, 0, 0, Math.PI * 2); ctx.fill();
@@ -2261,8 +3139,50 @@ function drawGather(w, h, dt) {
   drawToasts(sx, sy);
 }
 
-// ---------- Vẽ cảnh QUÁN (hỗ trợ đầy đủ 2 bếp / 4 bàn / burn / kiên nhẫn <25% nhấp nháy) ----------
-function drawQuan(w, h) {
+// ---------- Vẽ cảnh QUÁN (hỗ trợ 2 bếp / 4 bàn / burn / animation khách đi vào, ngồi chờ, ngồi ăn, rời đi) ----------
+function drawCustomerSprite(v, px, py, s, lowPat) {
+  const ready = customerSheet && customerSheet.naturalWidth > 0;
+  const colW = ready ? customerSheet.naturalWidth / 4 : 300;
+  const rowH = ready ? customerSheet.naturalHeight / 3 : 298;
+  let col = 2; // ngồi chờ
+  let bob = 0;
+  let shakeX = 0;
+  if (v.state === "entering" || v.state === "leaving") {
+    col = Math.floor(animTime * 6.5 + idHash(v.id)) % 2;
+    bob = Math.abs(Math.sin(animTime * 13 + idHash(v.id))) * -0.1 * s;
+  } else if (v.eating) {
+    col = 3; // ngồi ăn
+    bob = Math.sin(animTime * 6 + idHash(v.id)) * 0.05 * s;
+  } else {
+    col = 2; // ngồi chờ
+    if (lowPat) shakeX = Math.sin(animTime * 22) * 0.08 * s;
+    else bob = Math.sin(animTime * 3 + idHash(v.id)) * 0.03 * s;
+  }
+  const region = [Math.round(col * colW), Math.round(v.row * rowH), Math.round(colW), Math.round(rowH)];
+  const drawn = drawSprite(customerSheet, region, px + shakeX, py + bob, 1.95 * s, 0, Boolean(v.facingLeft));
+  if (!drawn) {
+    const custCol = v.eating ? "#66bb6a" : CUSTOMER_COLORS[idHash(v.id) % CUSTOMER_COLORS.length];
+    ctx.fillStyle = custCol; ctx.beginPath(); ctx.arc(px + shakeX, py + bob, 0.56 * s, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#2b1b12"; ctx.lineWidth = 1.6; ctx.stroke();
+    drawText(v.id || "C", px + shakeX, py + bob + 1, { size: 11, bold: true, align: "center", base: "middle", color: "#1b120b" });
+  }
+  // Hơi nóng bay lên khi khách đang ăn
+  if (v.state === "seated" && v.eating) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 248, 225, 0.72)";
+    ctx.lineWidth = 1.6;
+    for (let k = 0; k < 2; k++) {
+      const phase = ((animTime * 1.4 + k * 0.5) % 1);
+      const stx = px + (k === 0 ? -0.18 : 0.18) * s + Math.sin(animTime * 5 + k) * 0.08 * s;
+      const sty = py - (0.35 + phase * 0.55) * s;
+      ctx.globalAlpha = 1 - phase;
+      ctx.beginPath(); ctx.arc(stx, sty, (0.08 + phase * 0.06) * s, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawQuan(w, h, dt = 0.016) {
   const { top, bottom } = getHudInsets();
   const meta = snap.meta || {};
   const b = meta.bounds || { x: [0, 16], z: [0, 10] };
@@ -2307,6 +3227,12 @@ function drawQuan(w, h) {
     const warm = Math.floor(x) % 2 === 0 ? "#ffd54f" : "#ff8a65";
     ctx.fillStyle = warm; ctx.beginPath(); ctx.arc(lx, ly, 0.18 * s, 0, Math.PI * 2); ctx.fill();
   }
+
+  // Lối vào bến quán (nơi khách bước vào & rời đi)
+  roundRectPath(sx(0.15), sy(1.2), 1.35 * s, 1.15 * s, 6);
+  ctx.fillStyle = "rgba(92, 58, 25, 0.55)"; ctx.fill();
+  ctx.strokeStyle = "#f6bd60"; ctx.lineWidth = 1.5; ctx.stroke();
+  drawText("Lối vào", sx(0.82), sy(0.62), { size: 10, bold: true, align: "center", base: "middle", color: "#ffe5b4" });
 
   const hint = getQuanHintTarget();
   const handDish = extractDishId(snap.hand);
@@ -2374,12 +3300,107 @@ function drawQuan(w, h) {
     if (c.id) byCustomerId[c.id] = c;
   }
 
+  // Cập nhật animation khách đi vào, ngồi xuống ghế gỗ, ngồi ăn và đi ra cửa (thuần client)
+  const activeIds = new Set();
+  const tablePosById = {};
+  for (const tb of snap.tables || []) tablePosById[tb.id] = tb.pos;
+  for (const c of snap.customers || []) {
+    activeIds.add(c.id);
+    const tp = tablePosById[c.table_id] || [8, 4];
+    // Ghế đặt phía sau bàn (z lớn hơn = cao hơn trên màn hình) để bàn vẽ che phía trước đầu gối tự nhiên!
+    const seatX = tp[0], seatZ = tp[1] + 1.15;
+    let v = customerVisuals.get(c.id);
+    if (!v) {
+      v = {
+        id: c.id,
+        x: CUSTOMER_ENTRANCE[0],
+        z: CUSTOMER_ENTRANCE[1],
+        tx: seatX,
+        tz: seatZ,
+        row: idHash(c.id) % 3,
+        state: "entering",
+        sitProgress: 0,
+        eating: c.state === "eating",
+        facingLeft: false
+      };
+      customerVisuals.set(c.id, v);
+    }
+    v.tx = seatX;
+    v.tz = seatZ;
+    v.eating = c.state === "eating";
+    if (v.state === "leaving") { v.state = "entering"; v.sitProgress = 0; }
+  }
+  for (const [cid, v] of customerVisuals.entries()) {
+    if (!activeIds.has(cid) && v.state !== "leaving") {
+      v.state = "leaving";
+      v.sitProgress = 0;
+      v.tx = CUSTOMER_ENTRANCE[0];
+      v.tz = CUSTOMER_ENTRANCE[1];
+    }
+    if (!snap.paused) {
+      if (v.state === "entering" || v.state === "leaving") {
+        const dx = v.tx - v.x, dz = v.tz - v.z;
+        const dist = Math.hypot(dx, dz);
+        const step = 6.2 * dt;
+        if (Math.abs(dx) > 0.05) v.facingLeft = dx < 0;
+        if (dist <= step + 0.05) {
+          v.x = v.tx; v.z = v.tz;
+          if (v.state === "entering") { v.state = "seated"; v.sitProgress = 0; v.facingLeft = false; }
+          else { customerVisuals.delete(cid); }
+        } else {
+          v.x += (dx / dist) * step;
+          v.z += (dz / dist) * step;
+        }
+      } else if (v.state === "seated" && v.sitProgress < 1) {
+        v.sitProgress = Math.min(1, v.sitProgress + dt * 4.2);
+      }
+    }
+  }
+
+  function drawWoodenChair(cx, cy, s) {
+    // Tựa lưng ghế gỗ
+    roundRectPath(cx - 0.46 * s, cy - 0.56 * s, 0.92 * s, 0.42 * s, 5);
+    ctx.fillStyle = "#6d4220"; ctx.fill();
+    ctx.strokeStyle = "#3b210d"; ctx.lineWidth = 1.6; ctx.stroke();
+    // Mặt ghế gỗ
+    roundRectPath(cx - 0.52 * s, cy - 0.16 * s, 1.04 * s, 0.44 * s, 6);
+    ctx.fillStyle = "#8d582e"; ctx.fill();
+    ctx.strokeStyle = "#3b210d"; ctx.lineWidth = 1.6; ctx.stroke();
+    // Chân ghế
+    ctx.fillStyle = "#4e2d13";
+    ctx.fillRect(cx - 0.44 * s, cy + 0.25 * s, 0.14 * s, 0.24 * s);
+    ctx.fillRect(cx + 0.30 * s, cy + 0.25 * s, 0.14 * s, 0.24 * s);
+  }
+
   for (const tb of snap.tables || []) {
     const x = sx(tb.pos[0]), y = sy(tb.pos[1]);
+    const chairY = sy(tb.pos[1] + 1.12);
     const c = byTable[tb.id] || (tb.customer_id ? byCustomerId[tb.customer_id] : null);
     const isTarget = hint && hint.kind === "table" && hint.id === tb.id;
     const isDeliveryTarget = Boolean(handOrderId && c && c.id === handOrderId && c.state !== "eating");
 
+    // 1. Vẽ ghế gỗ trước (nằm sau khách & sau bàn)
+    drawWoodenChair(x, chairY, s);
+
+    // 2. Nếu khách đã ngồi vào ghế -> vẽ khách NGỒI TRÊN GHẾ (với hoạt ảnh hạ người xuống ghế sitProgress) TRƯỚC khi vẽ bàn!
+    let seatedCustomerDraw = null;
+    if (c) {
+      const v = customerVisuals.get(c.id);
+      const isEating = c.state === "eating";
+      const patLeft = c.patience_ticks_left ?? c.patience_ticks;
+      const patMax = c.patience_max_ticks || patMaxDefault;
+      const frac = patLeft !== undefined ? Math.max(0, Math.min(1, patLeft / Math.max(1, patMax))) : 1;
+      const lowPat = !isEating && frac < 0.25;
+      seatedCustomerDraw = { c, v, isEating, patLeft, patMax, frac, lowPat };
+      if (!v || v.state === "seated") {
+        // Easing ngồi xuống ghế: lúc mới tới đứng hơi cao (-0.28*s), hạ nhẹ xuống mặt ghế (0)
+        const ease = v ? (1 - Math.pow(1 - (v.sitProgress ?? 1), 2)) : 1;
+        const sitOffsetY = (1 - ease) * -0.28 * s;
+        drawCustomerSprite(v || { id: c.id, row: idHash(c.id) % 3, state: "seated", eating: isEating }, x, chairY - 0.12 * s + sitOffsetY, s, lowPat);
+      }
+    }
+
+    // 3. Vẽ bàn gỗ PHÍA TRƯỚC đầu gối khách (tạo chiều sâu 2.5D tự nhiên, khách không bị ngồi đè lên bàn!)
     if (isDeliveryTarget) {
       ctx.strokeStyle = "#69f0ae"; ctx.lineWidth = 3.2;
       ctx.beginPath(); ctx.arc(x, y, (1.28 + Math.sin(animTime * 6) * 0.08) * s, 0, Math.PI * 2); ctx.stroke();
@@ -2388,45 +3409,40 @@ function drawQuan(w, h) {
       ctx.strokeStyle = "#ffd54f"; ctx.lineWidth = 2.6;
       ctx.beginPath(); ctx.arc(x, y, 1.15 * s, 0, Math.PI * 2); ctx.stroke();
     }
-
     if (!sprite("table", x, y, 1.85 * s)) {
       ctx.fillStyle = "#7c4c22"; ctx.beginPath(); ctx.arc(x, y, 0.92 * s, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = "#47290f"; ctx.lineWidth = 2; ctx.stroke();
     }
-    drawText(tb.id, x, y + 1, { size: 13, bold: true, align: "center", base: "middle", color: "#ffe8c2", shadow: true });
+    drawText(tb.id, x, y + 0.35 * s, { size: 12, bold: true, align: "center", base: "middle", color: "#ffe8c2", shadow: true });
 
-    if (c) {
-      const cx = x, cy = y - 1.46 * s;
+    // 4. Vẽ món ăn trên mặt bàn khi khách đang ăn + thanh kiên nhẫn/ăn phía trên đầu khách
+    if (seatedCustomerDraw) {
+      const { v, isEating, patLeft, frac, lowPat } = seatedCustomerDraw;
       const dishId = extractDishId(c.dish_id || c.dish || c.order);
       const dInfo = dishId ? dishMeta(dishId) : null;
-      const isEating = c.state === "eating";
-      const custCol = isEating ? "#66bb6a" : CUSTOMER_COLORS[idHash(c.id) % CUSTOMER_COLORS.length];
-
-      ctx.fillStyle = custCol; ctx.beginPath(); ctx.arc(cx, cy, 0.56 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#2b1b12"; ctx.lineWidth = 1.6; ctx.stroke();
-      drawText(c.id || "C", cx, cy + 1, { size: 11, bold: true, align: "center", base: "middle", color: "#1b120b" });
-
+      if (v && v.state !== "seated") {
+        drawCustomerSprite(v, sx(v.x), sy(v.z), s, lowPat);
+      }
+      if (isEating && dInfo) {
+        if (!sprite(dishId, x, y - 0.12 * s, 0.85 * s)) {
+          drawText(dInfo.icon, x, y - 0.1 * s, { size: Math.round(0.75 * s), align: "center", base: "middle" });
+        }
+      }
+      const hudX = v && v.state !== "seated" ? sx(v.x) : x;
+      const hudY = v && v.state !== "seated" ? sy(v.z) : chairY - 0.12 * s;
       if (isEating) {
         const eatLeft = c.eat_ticks_left ?? c.eat_ticks;
         const eatMax = c.eat_max_ticks || eatMaxDefault;
-        drawPillLabel(`😋 Ăn${eatLeft !== undefined ? " " + Math.ceil(eatLeft / 60) + "s" : ""}`, cx, cy - 0.98 * s, "rgba(27,94,32,0.92)", "#e8f5e9", "#81c784", 11);
-        if (eatLeft !== undefined) drawBar(cx - 0.9 * s, cy + 0.68 * s, 1.8 * s, 7, 1 - Math.min(1, eatLeft / Math.max(1, eatMax)), "#66bb6a");
+        drawPillLabel(`😋 Ăn${eatLeft !== undefined ? " " + Math.ceil(eatLeft / 60) + "s" : ""}`, hudX, hudY - 1.18 * s, "rgba(27,94,32,0.92)", "#e8f5e9", "#81c784", 11);
+        if (eatLeft !== undefined) drawBar(x - 0.9 * s, y + 0.96 * s, 1.8 * s, 7, 1 - Math.min(1, eatLeft / Math.max(1, eatMax)), "#66bb6a");
       } else {
-        const patLeft = c.patience_ticks_left ?? c.patience_ticks;
-        const patMax = c.patience_max_ticks || patMaxDefault;
-        const frac = patLeft !== undefined ? Math.max(0, Math.min(1, patLeft / Math.max(1, patMax))) : 1;
-        const lowPat = frac < 0.25;
         const blinkOn = !lowPat || Math.sin(animTime * 12) > 0;
         const barCol = frac >= tipRatio ? "#66bb6a" : lowPat ? (blinkOn ? "#ff1744" : "#ff8a80") : "#ffa726";
         const orderTxt = dInfo ? `${dInfo.icon} ${dInfo.short}${frac >= tipRatio ? " ★" : ""}` : "Đang gọi…";
-        if (dishId && sprite(dishId, cx, cy - 1.02 * s, 0.78 * s)) {
-          drawPillLabel(orderTxt, cx, cy - 1.56 * s, "rgba(255,250,240,0.95)", "#2c1a0e", barCol, 10);
-        } else {
-          drawPillLabel(orderTxt, cx, cy - 1.02 * s, "rgba(255,250,240,0.95)", "#2c1a0e", barCol, 11);
-        }
+        drawPillLabel(orderTxt, hudX, hudY - 1.18 * s, "rgba(255,250,240,0.95)", "#2c1a0e", barCol, 11);
         if (patLeft !== undefined) {
-          drawBar(cx - 0.95 * s, cy + 0.68 * s, 1.9 * s, 8, frac, barCol, tipRatio);
-          drawText(`${Math.ceil(patLeft / 60)}s`, cx + 1.15 * s, cy + 0.74 * s, {
+          drawBar(x - 0.95 * s, y + 0.96 * s, 1.9 * s, 8, frac, barCol, tipRatio);
+          drawText(`${Math.ceil(patLeft / 60)}s`, x + 1.15 * s, y + 1.0 * s, {
             size: 11, bold: true, align: "left", base: "middle", color: lowPat ? "#ff8a80" : "#fff", shadow: true
           });
         }
@@ -2434,15 +3450,43 @@ function drawQuan(w, h) {
     }
   }
 
-  // Út Sen đứng quán
+  // Vẽ khách đang bước rời khỏi quán về lối ra
+  for (const v of customerVisuals.values()) {
+    if (v.state === "leaving") {
+      drawCustomerSprite(v, sx(v.x), sy(v.z), s, false);
+    }
+  }
+
+  // Út Sen đứng quán — có animation bước đi (4 khung tay không / bưng khay món ăn)
   const p = snap.player;
   if (p && p.pos) {
     const px = sx(p.pos[0]), py = sy(p.pos[1]);
+    let moving = false;
+    if (utSenLastPos) {
+      const dx = p.pos[0] - utSenLastPos[0], dz = p.pos[1] - utSenLastPos[1];
+      const moved = Math.hypot(dx, dz);
+      if (moved > 0.004) {
+        moving = true;
+        if (Math.abs(dx) > 0.002) utSenFacingLeft = dx < 0;
+        if (!snap.paused) utSenWalkPhase += dt * 9.5;
+      }
+    }
+    utSenLastPos = [p.pos[0], p.pos[1]];
     if (meta.interact_radius) {
       ctx.strokeStyle = hint ? "rgba(255, 213, 79, 0.75)" : "rgba(255, 255, 255, 0.35)";
       ctx.lineWidth = 1.6; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     }
-    if (!sprite("serve", px, py, 1.45 * s)) {
+    let utDrawn = false;
+    if (utSenWalkSheet && utSenWalkSheet.naturalWidth > 0) {
+      const colW = utSenWalkSheet.naturalWidth / 4;
+      const rowH = utSenWalkSheet.naturalHeight / 2;
+      const row = handDish ? 1 : 0;
+      const col = moving ? (Math.floor(utSenWalkPhase) % 4) : 1;
+      const bob = moving ? Math.abs(Math.sin(utSenWalkPhase * Math.PI)) * -0.1 * s : Math.sin(animTime * 3) * 0.02 * s;
+      const region = [Math.round(col * colW), Math.round(row * rowH), Math.round(colW), Math.round(rowH)];
+      utDrawn = drawSprite(utSenWalkSheet, region, px, py + bob, 1.95 * s, 0, utSenFacingLeft);
+    }
+    if (!utDrawn && !sprite("serve", px, py, 1.45 * s)) {
       ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.54 * s, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#f2d388"; ctx.beginPath(); ctx.arc(px, py, 0.38 * s, 0, Math.PI * 2); ctx.fill();
     }
@@ -2508,8 +3552,8 @@ function frame(now) {
   ctx.fillRect(0, 0, w, h);
 
   if (snap) {
-    if (snap.mode === "quan") drawQuan(w, h);
-    else drawGather(w, h, dt);
+    if (snap.mode === "quan") drawQuan(w, h, dt);
+    else { customerVisuals.clear(); drawGather(w, h, dt); }
   } else {
     drawText(offline ? "Không kết nối được máy chủ…" : "Đang kết nối tới Quán Ăn Chợ Nổi…", w / 2, h / 2, {
       align: "center", base: "middle", size: 20, color: "#cfd8dc"

@@ -35,14 +35,19 @@ class LiveUiContractTest(unittest.TestCase):
             self.assertIn(kind, self.html)
         for dish_id in (*contract["menu"].keys(), *extra["menu"].keys()):
             self.assertIn(dish_id, self.html)
-        for token in ("day_intro", "evening_intro", "day_result", "shop", "summary",
+        for token in ("day_intro", "evening_intro", "day_result", "shop", "summary", "market",
                       "THỦY QUÁI!", "OXY SẮP HẾT!", "HẾT HƠI!", "KHÁCH SẮP GIẬN!",
-                      "HÀNG ƯƠN", "high-contrast", "btnContrast", "drawMonster", "pauseModal"):
+                      "HÀNG ƯƠN", "high-contrast", "btnContrast", "guideModal", "bagModal", "btnCloseQuan",
+                      "titleScreen", "vnDialogue", "Dì Tư", "Anh Ba", "Ông Năm",
+                      "/assets/title-bg.jpg", "/assets/portraits-sheet.png",
+                      "/assets/customers-sheet.png", "/assets/ut-sen-walk.png",
+                      "drawWoodenChair", "drawMonster", "pauseModal"):
             self.assertIn(token, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
         self.assertIn("/assets/ut-sen-swim.png", self.html)
-        self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", "cho-noi-sprites.png")))
-        self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", "ut-sen-swim.png")))
+        for asset in ("cho-noi-sprites.png", "ut-sen-swim.png", "customers-sheet.png",
+                      "ut-sen-walk.png", "title-bg.jpg", "portraits-sheet.png"):
+            self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", asset)), asset)
 
     def test_live_game_gather_and_quan_snapshot_and_input(self):
         tuning = load_contract()["tuning"]
@@ -126,29 +131,45 @@ class LiveUiContractTest(unittest.TestCase):
         self.assertEqual(st["mode"], "gather")
         oxy_day1 = st["player"]["oxygen_max_ticks"]
 
-        # 3. Cập bến ngay tại dock -> chuyển sang EveningIntro với kho mang về (v1.2 cá thể)
+        # 3. Kiểm bỏ đồ khỏi balo (drop_hold_item), rồi cập bến với đồ trong & ngoài thực đơn -> EveningIntro -> Chợ Ông Năm
         g.session.sim.hold.append(make_item("I1", "ca_loc", 100))
+        g.session.sim.hold.append(make_item("I2", "keo_neo", 100))
+        g.session.sim.hold.append(make_item("I3", "ca_linh", 100))
+        drop_res = g.perform_action({"action": "drop_hold_item", "item_id": "I3"})
+        self.assertTrue(drop_res["ok"])
+        self.assertEqual(len(g.session.sim.hold), 2)
         g.set_input({"interact": True})
         g._tick_once()
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "evening_intro")
-        self.assertEqual(len(st["last_gather_inventory"]["items"]), 1)
-        self.assertEqual(st["last_gather_inventory"]["items"][0]["kind"], "ca_loc")
+        self.assertEqual(len(st["last_gather_inventory"]["items"]), 2)
 
-        # 4. Bỏ qua EveningIntro -> Quan -> hết giờ -> DayResult
-        g.perform_action({"action": "skip_intro"})
+        # 3b. Ghé Chợ Ông Năm: bán keo_neo (ngoài thực đơn D1), từ chối bán ca_loc (trong thực đơn), mua bong_sung (có giới hạn)
+        self.assertTrue(g.perform_action({"action": "open_market"})["ok"])
+        self.assertEqual(json.loads(g.state_json())["screen"], "market")
+        self.assertFalse(g.perform_action({"action": "market_sell", "kind": "ca_loc"})["ok"])
+        sell_ok = g.perform_action({"action": "market_sell", "kind": "keo_neo"})
+        self.assertTrue(sell_ok["ok"])
+        self.assertGreater(sell_ok["money"], 0)
+        g.carry_money = 100
+        self.assertTrue(g.perform_action({"action": "market_buy", "kind": "bong_sung"})["ok"])
+        self.assertTrue(g.perform_action({"action": "market_buy", "kind": "bong_sung"})["ok"])
+        self.assertFalse(g.perform_action({"action": "market_buy", "kind": "bong_sung"})["ok"])  # chạm giới hạn 2/loại
+        self.assertTrue(g.perform_action({"action": "close_market"})["ok"])
+
+        # 4. Đang ở Quan -> kiểm nút Đóng quán sớm (close_quan) chuyển ngay sang DayResult
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "playing")
         self.assertEqual(st["mode"], "quan")
-        g.session.sim.money = 220
-        g.session.sim.earned = 220
-        g.session.sim.time_left_ticks = 1
-        g._tick_once()
+        g.session.sim.money = 370
+        g.session.sim.earned = 370
+        close_res = g.perform_action({"action": "close_quan"})
+        self.assertTrue(close_res["ok"])
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "day_result")
         self.assertEqual(st["days_completed"], 1)
 
-        # 5. Mở Shop: kiểm Pause đóng băng timer Shop, mua oxygen thành công, mua hp thất bại do thiếu tiền
+        # 5. Mở Shop: kiểm Pause đóng băng timer Shop, mua oxygen & balo (bag) thành công, mua hp thất bại do thiếu tiền
         g.perform_action({"action": "open_shop"})
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "shop")
@@ -163,19 +184,23 @@ class LiveUiContractTest(unittest.TestCase):
 
         buy_ok = g.perform_action({"action": "buy", "item": "oxygen"})
         self.assertTrue(buy_ok["ok"])
+        buy_bag = g.perform_action({"action": "buy", "item": "bag"})
+        self.assertTrue(buy_bag["ok"])
         buy_fail = g.perform_action({"action": "buy", "item": "hp"})
         self.assertFalse(buy_fail["ok"])
         self.assertEqual(buy_fail["reason"], "insufficient_money")
 
-        # 6. Đóng Shop -> Ngày 2 với active_upgrades["oxygen"] == 1 (+10s oxy tối đa)
+        # 6. Đóng Shop -> Ngày 2 với active_upgrades["oxygen"] == 1 và active_upgrades["bag"] == 1 (+4 ô giỏ)
         g.perform_action({"action": "shop_done"})
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "day_intro")
         self.assertEqual(st["day"], 2)
         self.assertEqual(st["active_upgrades"]["oxygen"], 1)
+        self.assertEqual(st["active_upgrades"]["bag"], 1)
         g.perform_action({"action": "skip_intro"})
         st = json.loads(g.state_json())
         self.assertGreater(st["player"]["oxygen_max_ticks"], oxy_day1)
+        self.assertEqual(st["hold_capacity"], 16)
 
         # 7. Hoàn thành Ngày 2 (ngày cuối với days=2) -> Summary
         g.set_input({"interact": True})
