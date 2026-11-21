@@ -81,9 +81,12 @@
     height: 100%;
     background: var(--bg);
     color: var(--text);
-    font: var(--hud-font)/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: var(--hud-font)/1.35 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     overflow: hidden;
     user-select: none;
+  }
+  button, input, select {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   }
   canvas {
     display: block;
@@ -106,20 +109,33 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-color: var(--border);
-    padding: 7px 14px;
+    padding: 6px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
-  .hud-top { border-bottom: 1px solid var(--border); min-height: 66px; }
-  .hud-bottom { border-top: 1px solid var(--border); min-height: 76px; }
+  .hud-top { border-bottom: 1px solid var(--border); height: 70px; min-height: 70px; max-height: 70px; }
+  .hud-bottom { border-top: 1px solid var(--border); height: 78px; min-height: 78px; max-height: 78px; }
 
   .hud-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+  .buff-stack {
+    position: fixed;
+    top: 78px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 19;
+    pointer-events: none;
     flex-wrap: wrap;
   }
   .badge {
@@ -589,8 +605,8 @@
   .title-logo {
     margin: 0;
     font-size: clamp(38px, 5.2vw, 64px);
-    line-height: 1.06;
-    font-weight: 900;
+    line-height: 1.08;
+    font-weight: 800;
     color: #fff6dc;
     text-shadow: 0 4px 24px rgba(0, 0, 0, 0.72), 0 0 28px rgba(246, 189, 96, 0.42);
   }
@@ -611,8 +627,10 @@
   .title-btn {
     padding: 14px 24px;
     border-radius: 14px;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     font-size: 20px;
-    font-weight: 900;
+    font-weight: 800;
+    letter-spacing: 0.01em;
     cursor: pointer;
     border: 2px solid rgba(255, 232, 189, 0.55);
     transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -762,6 +780,65 @@
   .menu-hero h1 { font-size: calc(var(--hud-font) + 16px); margin: 0; color: var(--accent); }
   .menu-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
 
+  /* ---- Settings Panel (Âm lượng BGM/SFX & Tương phản) ---- */
+  .settings-group {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .settings-group-title {
+    font-weight: 800;
+    font-size: calc(var(--hud-font) - 1px);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: calc(var(--hud-font) - 1px);
+  }
+  .setting-row label { flex: 0 0 155px; color: var(--text); font-weight: 600; }
+  .setting-slider {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 6px;
+    cursor: pointer;
+  }
+  .setting-val {
+    flex: 0 0 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--cyan);
+  }
+  .badge.gold-buff {
+    background: rgba(255, 213, 79, 0.25);
+    border-color: #ffd54f;
+    color: #fff8e1;
+    box-shadow: 0 0 12px rgba(255, 213, 79, 0.35);
+  }
+  .badge.speed-buff {
+    background: rgba(0, 229, 255, 0.22);
+    border-color: #4dd0e1;
+    color: #e0f7fa;
+  }
+  .badge.slow-debuff {
+    background: rgba(206, 147, 216, 0.3);
+    border-color: #ea80fc;
+    color: #f3e5f5;
+    animation: blinkFast 0.75s infinite;
+  }
+
   @keyframes blinkFast {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.42; }
@@ -777,11 +854,9 @@
     <div class="hud-group" id="topCenter"></div>
     <div class="toolbar">
       <span class="meta-pill" id="connPill"><span class="dot" id="connDot"></span><span id="fpsLabel">-- FPS</span> · <span id="tickLabel">t0</span></span>
-      <button class="btn" id="btnGuide" type="button" title="Sổ tay Chợ Nổi — chú thích cá, rau, thủy quái & thực đơn (B)">📖 Sổ tay</button>
-      <button class="btn" id="btnContrast" type="button" title="Chế độ tương phản cao (C)">🌓 Tương phản</button>
-      <button class="btn" id="btnPause" type="button" title="Tạm dừng (Esc / P)">⏸</button>
+      <button class="btn" id="btnGuide" type="button" title="Sổ tay Chợ Nổi — chú thích cá, rau, vật phẩm, sứa & thực đơn (B)">📖 Sổ tay</button>
       <button class="btn" id="btnLog" type="button" title="Nhật ký sự kiện (H)">📜 Log</button>
-      <button class="btn" id="btnSound" type="button" title="Âm thanh (M)">🔇</button>
+      <button class="btn" id="btnPause" type="button" title="Cài đặt âm thanh, tương phản & tạm dừng (Esc / P)">⚙ Cài đặt</button>
       <button class="btn" id="btnRestart" type="button" title="Chơi lại (R)">↻</button>
     </div>
   </header>
@@ -793,6 +868,7 @@
 </div>
 
 <div class="warn-stack" id="warnStack"></div>
+<div class="buff-stack" id="buffStack"></div>
 
 <aside class="event-drawer hidden" id="eventDrawer">
   <div class="drawer-head">
@@ -813,6 +889,7 @@
     <p class="title-sub">Cùng <b>Út Sen</b>, <b>Dì Tư</b>, <b>Anh Ba</b> và <b>Ông Năm</b> lặn sông bắt cá, ghé chợ ghe và mở quán ăn qua mùa nước nổi.</p>
     <div class="title-buttons">
       <button class="title-btn start" id="btnTitleStart" type="button"><span>▶ Bắt đầu</span><span>Enter</span></button>
+      <button class="title-btn exit" id="btnTitleSettings" type="button" style="background:rgba(15,38,54,0.86);border-color:rgba(79,195,247,0.55);"><span>⚙ Cài đặt</span><span></span></button>
       <button class="title-btn exit" id="btnTitleExit" type="button"><span>✕ Thoát</span><span></span></button>
     </div>
   </div>
@@ -837,14 +914,50 @@
   <div class="screen-card" id="screenCard"></div>
 </div>
 
-<!-- Pause Overlay (Esc / P — làm mờ nền, dừng mọi timer kể cả Shop) -->
+<!-- Settings & Pause Overlay (Esc / P / nút ⚙ Cài đặt — chỉnh âm lượng BGM/SFX, tương phản & tạm dừng) -->
 <div class="overlay-backdrop pause-layer" id="pauseModal">
-  <div class="screen-card" style="width: min(440px, 100%); text-align: center;">
-    <h2 class="screen-title" style="justify-content: center;">⏸ Tạm dừng</h2>
-    <p class="screen-sub" id="pauseSub">Mọi bộ đếm (kể cả Shop) đã tạm dừng.</p>
+  <div class="screen-card" style="width: min(500px, 100%);">
+    <h2 class="screen-title">
+      <span>⚙ Cài đặt</span>
+      <button class="btn" id="btnPauseCloseX" type="button" title="Đóng (Esc)">✕</button>
+    </h2>
+    <p class="screen-sub" id="pauseSub">Trò chơi đã tạm dừng. Điều chỉnh âm thanh và hiển thị bên dưới.</p>
+
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <span>🎵 Âm thanh &amp; Nhạc nền</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" id="btnTestSfx" type="button" style="padding:3px 10px;font-size:14px;">🔔 Thử SFX</button>
+          <button class="btn active" id="btnSound" type="button" style="padding:3px 10px;font-size:14px;" title="Bật / tắt âm thanh (M)">🔊 Đang bật</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label for="volMaster">Âm lượng tổng</label>
+        <input class="setting-slider" id="volMaster" type="range" min="0" max="100" value="85">
+        <span class="setting-val" id="volMasterVal">85%</span>
+      </div>
+      <div class="setting-row">
+        <label for="volBgm">Nhạc nền (Sáng/Chiều)</label>
+        <input class="setting-slider" id="volBgm" type="range" min="0" max="100" value="85">
+        <span class="setting-val" id="volBgmVal">85%</span>
+      </div>
+      <div class="setting-row">
+        <label for="volSfx">Hiệu ứng (SFX)</label>
+        <input class="setting-slider" id="volSfx" type="range" min="0" max="100" value="90">
+        <span class="setting-val" id="volSfxVal">90%</span>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title"><span>👁 Hiển thị</span></div>
+      <div class="setting-row">
+        <label>Tương phản cao (C)</label>
+        <button class="btn" id="btnContrast" type="button" style="flex:1;">🌓 Bật tương phản cao (C)</button>
+      </div>
+    </div>
+
     <div class="menu-actions" style="flex-direction: column;">
       <button class="btn primary" id="btnPauseResume" type="button">▶ Tiếp tục (Esc / P)</button>
-      <button class="btn" id="btnPauseContrast" type="button">🌓 Chế độ tương phản cao (C)</button>
       <button class="btn" id="btnPauseRestart" type="button">↻ Chơi lại từ đầu (R)</button>
       <button class="btn danger-btn" id="btnPauseMenu" type="button">🏠 Về Menu chính</button>
     </div>
@@ -898,6 +1011,7 @@ const topCenterEl = document.getElementById("topCenter");
 const bottomLeftEl = document.getElementById("bottomLeft");
 const bottomRightEl = document.getElementById("bottomRight");
 const warnStackEl = document.getElementById("warnStack");
+const buffStackEl = document.getElementById("buffStack");
 const connDotEl = document.getElementById("connDot");
 const fpsLabelEl = document.getElementById("fpsLabel");
 const tickLabelEl = document.getElementById("tickLabel");
@@ -909,6 +1023,7 @@ const screenModalEl = document.getElementById("screenModal");
 const screenCardEl = document.getElementById("screenCard");
 const titleScreenEl = document.getElementById("titleScreen");
 const btnTitleStart = document.getElementById("btnTitleStart");
+const btnTitleSettings = document.getElementById("btnTitleSettings");
 const btnTitleExit = document.getElementById("btnTitleExit");
 const vnDialogueEl = document.getElementById("vnDialogue");
 const vnWrapEl = document.getElementById("vnWrap");
@@ -919,6 +1034,7 @@ const vnNameplateEl = document.getElementById("vnNameplate");
 const vnStepHintEl = document.getElementById("vnStepHint");
 const pauseModalEl = document.getElementById("pauseModal");
 const pauseSubEl = document.getElementById("pauseSub");
+const btnPauseCloseX = document.getElementById("btnPauseCloseX");
 const btnGuide = document.getElementById("btnGuide");
 const guideModalEl = document.getElementById("guideModal");
 const guideBodyEl = document.getElementById("guideBody");
@@ -931,26 +1047,35 @@ const btnContrast = document.getElementById("btnContrast");
 const btnPause = document.getElementById("btnPause");
 const btnLog = document.getElementById("btnLog");
 const btnSound = document.getElementById("btnSound");
+const btnTestSfx = document.getElementById("btnTestSfx");
+const volMasterEl = document.getElementById("volMaster");
+const volMasterValEl = document.getElementById("volMasterVal");
+const volBgmEl = document.getElementById("volBgm");
+const volBgmValEl = document.getElementById("volBgmVal");
+const volSfxEl = document.getElementById("volSfx");
+const volSfxValEl = document.getElementById("volSfxVal");
 const btnRestart = document.getElementById("btnRestart");
 const btnPauseResume = document.getElementById("btnPauseResume");
-const btnPauseContrast = document.getElementById("btnPauseContrast");
 const btnPauseRestart = document.getElementById("btnPauseRestart");
 const btnPauseMenu = document.getElementById("btnPauseMenu");
+let settingsLocalOpen = false;
 
 function applyHighContrast(enabled) {
   document.body.classList.toggle("high-contrast", Boolean(enabled));
-  if (btnContrast) btnContrast.classList.toggle("active", Boolean(enabled));
-  if (btnPauseContrast) btnPauseContrast.textContent = enabled ? "🌓 Tắt tương phản cao (C)" : "🌓 Bật tương phản cao (C)";
+  if (btnContrast) {
+    btnContrast.classList.toggle("active", Boolean(enabled));
+    btnContrast.textContent = enabled ? "🌓 Tắt tương phản cao (C)" : "🌓 Bật tương phản cao (C)";
+  }
   try { localStorage.setItem("chonoi_high_contrast", enabled ? "1" : "0"); } catch (_) {}
 }
 function toggleHighContrast() {
   applyHighContrast(!document.body.classList.contains("high-contrast"));
+  if (typeof playSfx === "function") playSfx("ui_click");
 }
 try {
   if (localStorage.getItem("chonoi_high_contrast") === "1") applyHighContrast(true);
 } catch (_) {}
-if (btnContrast) btnContrast.addEventListener("click", toggleHighContrast);
-if (btnPauseContrast) btnPauseContrast.addEventListener("click", toggleHighContrast);
+if (btnContrast) btnContrast.addEventListener("click", () => { toggleHighContrast(); btnContrast.blur(); });
 window.addEventListener("keydown", (e) => {
   if (e.key === "c" || e.key === "C") toggleHighContrast();
 });
@@ -1147,7 +1272,7 @@ function updatePose(next, now) {
   if (next.tick === snap.tick) return;
   previousPose.clear();
   if (snap.player) previousPose.set("player", snap.player.pos);
-  for (const entity of [...(snap.fish || []), ...(snap.monsters || [])]) previousPose.set(entity.id, entity.pos);
+  for (const entity of [...(snap.fish || []), ...(snap.monsters || []), ...(snap.jellyfish || [])]) previousPose.set(entity.id, entity.pos);
   poseInterval = Math.max(8, Math.min(70, now - poseTime));
   poseTime = now;
 }
@@ -1160,8 +1285,22 @@ function renderPos(key, pos) {
 }
 let offline = false;
 let showLog = false;
-let soundOn = false;
+let soundOn = true;
+let masterVol = 0.85;
+let bgmVol = 0.85;
+let sfxVol = 0.90;
 let audioCtx = null;
+let masterGain = null;
+let masterComp = null;
+let bgmGain = null;
+let bgmFilter = null;
+let sfxGain = null;
+let noiseBuf = null;
+let bgmTimer = null;
+let bgmTrack = "menu"; // "gather" (phiên sáng) | "quan" (phiên chiều/tối) | "menu"
+let bgmStep = 0;
+let bgmUnderwater = false;
+let bgmDucked = false;
 let lastTick = -1;
 let lastTopKey = "";
 let lastBottomKey = "";
@@ -1178,39 +1317,536 @@ let fpsFrames = 0;
 let fpsWindowStart = performance.now();
 let currentFps = 60;
 
-// ---------- Web Audio nhẹ (tắt mặc định, chỉ ở client) ----------
-function beep(freq, dur = 0.11, type = "sine", vol = 0.06, slideTo = null) {
-  if (!soundOn) return;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    const t0 = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
-    gain.gain.setValueAtTime(vol, t0);
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur);
-  } catch (e) {}
+// ---------- Hệ thống Âm thanh & Nhạc nền Miền Tây Nam Bộ (Web Audio API 100% offline, chỉ chạy ở client live) ----------
+try {
+  const savedAudio = JSON.parse(localStorage.getItem("chonoi_audio_prefs_v2") || "null");
+  if (savedAudio && typeof savedAudio === "object") {
+    if (typeof savedAudio.soundOn === "boolean") soundOn = savedAudio.soundOn;
+    if (typeof savedAudio.masterVol === "number") masterVol = Math.max(0, Math.min(1, savedAudio.masterVol));
+    if (typeof savedAudio.bgmVol === "number") bgmVol = Math.max(0, Math.min(1, savedAudio.bgmVol));
+    if (typeof savedAudio.sfxVol === "number") sfxVol = Math.max(0, Math.min(1, savedAudio.sfxVol));
+  }
+} catch (_) {}
+
+function saveAudioPrefs() {
+  try { localStorage.setItem("chonoi_audio_prefs_v2", JSON.stringify({ soundOn, masterVol, bgmVol, sfxVol })); } catch (_) {}
 }
-function soundForEvent(name) {
-  if (!soundOn) return;
-  switch (name) {
-    case "gather": case "fish_caught": beep(520, 0.12, "triangle", 0.07, 780); break;
-    case "dish_ready": case "bought":  beep(660, 0.14, "sine", 0.07, 920); break;
-    case "paid":                       beep(587, 0.16, "triangle", 0.08, 988); break;
-    case "cook_started": case "dish_picked": case "served": beep(440, 0.08, "sine", 0.05, 520); break;
-    case "hold_full": case "no_dish": case "buy_failed":    beep(220, 0.12, "sawtooth", 0.04, 180); break;
-    case "monster_hit": case "oxygen_empty": case "choke": case "customer_left": case "faint": case "dish_burnt":
-      beep(175, 0.22, "sawtooth", 0.07, 95); break;
-    case "gather_end": case "quan_end": case "shop_end":    beep(523, 0.22, "triangle", 0.06, 659); break;
+function syncAudioUi() {
+  if (volMasterEl) volMasterEl.value = String(Math.round(masterVol * 100));
+  if (volMasterValEl) volMasterValEl.textContent = `${Math.round(masterVol * 100)}%`;
+  if (volBgmEl) volBgmEl.value = String(Math.round(bgmVol * 100));
+  if (volBgmValEl) volBgmValEl.textContent = `${Math.round(bgmVol * 100)}%`;
+  if (volSfxEl) volSfxEl.value = String(Math.round(sfxVol * 100));
+  if (volSfxValEl) volSfxValEl.textContent = `${Math.round(sfxVol * 100)}%`;
+  if (btnSound) {
+    btnSound.textContent = soundOn ? "🔊 Đang bật" : "🔇 Đã tắt";
+    btnSound.classList.toggle("active", soundOn);
   }
 }
+syncAudioUi();
+
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) {
+    audioCtx = new AC();
+    masterGain = audioCtx.createGain();
+    masterComp = audioCtx.createDynamicsCompressor();
+    masterComp.threshold.value = -14;
+    masterComp.knee.value = 18;
+    masterComp.ratio.value = 4;
+    masterComp.attack.value = 0.005;
+    masterComp.release.value = 0.16;
+
+    bgmFilter = audioCtx.createBiquadFilter();
+    bgmFilter.type = "lowpass";
+    bgmFilter.frequency.value = 5600;
+    bgmFilter.Q.value = 0.7;
+    bgmGain = audioCtx.createGain();
+    sfxGain = audioCtx.createGain();
+
+    bgmFilter.connect(bgmGain);
+    bgmGain.connect(masterGain);
+    sfxGain.connect(masterGain);
+    masterGain.connect(masterComp);
+    masterComp.connect(audioCtx.destination);
+
+    // Tạo buffer nhiễu trắng dùng cho tiếng nước, xèo chảo, tiếng trống/sáo trúc
+    const len = audioCtx.sampleRate * 1.2;
+    noiseBuf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const ch = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    applyAudioGains();
+    startBgmScheduler();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function applyAudioGains() {
+  if (!audioCtx || !masterGain || !bgmGain || !sfxGain) return;
+  const now = audioCtx.currentTime;
+  const m = soundOn ? masterVol : 0;
+  const duck = bgmDucked ? 0.42 : 1.0;
+  masterGain.gain.setTargetAtTime(m, now, 0.03);
+  bgmGain.gain.setTargetAtTime(bgmVol * 0.95 * duck, now, 0.05);
+  sfxGain.gain.setTargetAtTime(sfxVol * 1.0, now, 0.02);
+  if (bgmFilter) {
+    bgmFilter.frequency.setTargetAtTime(bgmUnderwater ? 1500 : 5600, now, 0.14);
+  }
+}
+
+function playTone(dest, freq, dur, opts = {}) {
+  if (!audioCtx || !dest || freq <= 0) return;
+  const t0 = (opts.when !== undefined ? opts.when : audioCtx.currentTime);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = opts.type || "triangle";
+  osc.frequency.setValueAtTime(freq, t0);
+  if (opts.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(20, opts.slideTo), t0 + dur);
+  const peak = opts.vol || 0.08;
+  const atk = opts.attack || 0.008;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(peak, t0 + atk);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  if (opts.lp) {
+    const flt = audioCtx.createBiquadFilter();
+    flt.type = "lowpass";
+    flt.frequency.setValueAtTime(opts.lp, t0);
+    osc.connect(flt);
+    flt.connect(gain);
+  } else {
+    osc.connect(gain);
+  }
+  gain.connect(dest);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+
+function playNoise(dest, dur, opts = {}) {
+  if (!audioCtx || !dest || !noiseBuf) return;
+  const t0 = opts.when !== undefined ? opts.when : audioCtx.currentTime;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuf;
+  const flt = audioCtx.createBiquadFilter();
+  flt.type = opts.filterType || "bandpass";
+  flt.frequency.setValueAtTime(opts.freq || 1000, t0);
+  if (opts.freqEnd) flt.frequency.exponentialRampToValueAtTime(Math.max(40, opts.freqEnd), t0 + dur);
+  flt.Q.value = opts.q || 1.2;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(opts.vol || 0.08, t0 + (opts.attack || 0.01));
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(flt);
+  flt.connect(gain);
+  gain.connect(dest);
+  src.start(t0);
+  src.stop(t0 + dur + 0.03);
+}
+
+// ---- Nhạc cụ dân tộc Miền Tây Nam Bộ (Web Audio tổng hợp) ----
+// 1. Đàn Tranh: gảy thanh thoát, giàu hài âm dây thép + luyến láy (nhấn dây) đặc trưng Nam Bộ
+function playDanTranh(dest, freq, dur, when, vol = 0.24, bendFrom = null) {
+  if (!audioCtx || !dest || !freq) return;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  const flt = audioCtx.createBiquadFilter();
+  const g1 = audioCtx.createGain();
+  const g2 = audioCtx.createGain();
+
+  osc1.type = "triangle";
+  osc2.type = "sawtooth";
+  const startF = bendFrom || freq;
+  osc1.frequency.setValueAtTime(startF, when);
+  osc2.frequency.setValueAtTime(startF * 2, when);
+  if (bendFrom) {
+    osc1.frequency.exponentialRampToValueAtTime(freq, when + 0.055);
+    osc2.frequency.exponentialRampToValueAtTime(freq * 2, when + 0.055);
+  }
+  // Rung nhẹ kiểu nhấn dây đàn tranh
+  lfo.frequency.setValueAtTime(5.4, when);
+  lfoGain.gain.setValueAtTime(freq * 0.009, when);
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc1.frequency);
+
+  flt.type = "lowpass";
+  flt.frequency.setValueAtTime(4200, when);
+  flt.frequency.exponentialRampToValueAtTime(1100, when + dur);
+
+  g1.gain.setValueAtTime(0.0001, when);
+  g1.gain.linearRampToValueAtTime(vol, when + 0.005);
+  g1.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+  g2.gain.setValueAtTime(0.0001, when);
+  g2.gain.linearRampToValueAtTime(vol * 0.28, when + 0.004);
+  g2.gain.exponentialRampToValueAtTime(0.0001, when + dur * 0.55);
+
+  osc1.connect(flt);
+  osc2.connect(g2);
+  g2.connect(flt);
+  flt.connect(g1);
+  g1.connect(dest);
+
+  osc1.start(when); osc2.start(when); lfo.start(when);
+  osc1.stop(when + dur + 0.03); osc2.stop(when + dur + 0.03); lfo.stop(when + dur + 0.03);
+}
+
+// 2. Đàn Bầu: tiếng ngân sâu lắng, uốn cần mượt đậm chất sông nước miền Tây
+function playDanBau(dest, freqFrom, freqTo, dur, when, vol = 0.22) {
+  if (!audioCtx || !dest || !freqFrom) return;
+  const osc = audioCtx.createOscillator();
+  const harm = audioCtx.createOscillator();
+  const lfo = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  const g = audioCtx.createGain();
+  const hg = audioCtx.createGain();
+
+  osc.type = "sine";
+  harm.type = "triangle";
+  osc.frequency.setValueAtTime(freqFrom, when);
+  harm.frequency.setValueAtTime(freqFrom * 2, when);
+  if (freqTo && freqTo !== freqFrom) {
+    osc.frequency.exponentialRampToValueAtTime(freqTo, when + dur * 0.45);
+    harm.frequency.exponentialRampToValueAtTime(freqTo * 2, when + dur * 0.45);
+  }
+  lfo.frequency.setValueAtTime(5.2, when);
+  lfoG.gain.setValueAtTime((freqTo || freqFrom) * 0.016, when);
+  lfo.connect(lfoG);
+  lfoG.connect(osc.frequency);
+
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(vol, when + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+  hg.gain.setValueAtTime(0.0001, when);
+  hg.gain.linearRampToValueAtTime(vol * 0.22, when + 0.03);
+  hg.gain.exponentialRampToValueAtTime(0.0001, when + dur * 0.7);
+
+  osc.connect(g);
+  harm.connect(hg);
+  hg.connect(g);
+  g.connect(dest);
+  osc.start(when); harm.start(when); lfo.start(when);
+  osc.stop(when + dur + 0.04); harm.stop(when + dur + 0.04); lfo.stop(when + dur + 0.04);
+}
+
+// 3. Đàn Kìm (Nguyệt cầm): âm trầm ấm, chắc nhịp đờn ca tài tử
+function playDanKim(dest, freq, dur, when, vol = 0.26) {
+  if (!audioCtx || !dest || !freq) return;
+  playTone(dest, freq, dur, { when, type: "triangle", vol, attack: 0.006, lp: 950 });
+  playTone(dest, freq * 2, dur * 0.35, { when, type: "sine", vol: vol * 0.25, attack: 0.004 });
+}
+
+// 4. Sáo Trúc: trong trẻo, thoáng hơi nhẹ cho không khí rộn ràng chợ nổi đêm
+function playSaoTruc(dest, freq, dur, when, vol = 0.19, bendFrom = null) {
+  if (!audioCtx || !dest || !freq) return;
+  const osc = audioCtx.createOscillator();
+  const lfo = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  const g = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(bendFrom || freq, when);
+  if (bendFrom) osc.frequency.exponentialRampToValueAtTime(freq, when + 0.045);
+  lfo.frequency.setValueAtTime(5.6, when);
+  lfoG.gain.setValueAtTime(freq * 0.011, when);
+  lfo.connect(lfoG);
+  lfoG.connect(osc.frequency);
+
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(vol, when + 0.035);
+  g.gain.setValueAtTime(vol * 0.85, when + Math.max(0.04, dur * 0.65));
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(g);
+  g.connect(dest);
+  osc.start(when); lfo.start(when);
+  osc.stop(when + dur + 0.03); lfo.stop(when + dur + 0.03);
+  playNoise(dest, Math.min(0.14, dur * 0.5), { when, filterType: "bandpass", freq: freq * 2.2, q: 4.5, vol: vol * 0.12, attack: 0.02 });
+}
+
+// 5. Song Lang & Trống Cơm: bộ gõ truyền thống Nam Bộ
+function playSongLang(dest, when, vol = 0.2) {
+  playTone(dest, 1180, 0.045, { when, type: "triangle", vol, slideTo: 760, attack: 0.001 });
+  playNoise(dest, 0.025, { when, filterType: "bandpass", freq: 2400, q: 3.0, vol: vol * 0.5, attack: 0.001 });
+}
+function playTrongCom(dest, when, pitch = 195, vol = 0.24) {
+  playTone(dest, pitch, 0.14, { when, type: "sine", vol, slideTo: pitch * 0.48, attack: 0.003 });
+  playNoise(dest, 0.035, { when, filterType: "bandpass", freq: 900, q: 1.5, vol: vol * 0.35, attack: 0.002 });
+}
+
+// Bảng nốt Ngũ cung Nam Bộ: Hò (D) - Xự (E) - Xang (G) - Xê (A) - Cống (B/C)
+const N = {
+  G2: 98.00, A2: 110.00, B2: 123.47, C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+  C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00, A4: 440.00, B4: 493.88,
+  C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880.00
+};
+
+// Phiên Sáng (Gather): Đờn ca sông nước kiểu Lý Cây Bông / Lý Chiều Chiều (Hò D - Xự E - Xang G - Xê A - Cống B, 32 bước)
+// Mỗi phần tử là 0 hoặc [nốt, nốt_luyến_từ_đâu]
+const BGM_MORNING_LEAD = [
+  [N.D4, 0], 0, [N.G4, N.E4], [N.A4, 0], [N.B4, N.A4], 0, [N.A4, 0], [N.G4, 0],
+  [N.E4, 0], [N.G4, 0], [N.A4, N.G4], 0, [N.D4, 0], 0, 0, 0,
+  [N.A4, 0], [N.B4, N.A4], [N.D5, 0], 0, [N.E5, N.D5], 0, [N.D5, 0], [N.B4, 0],
+  [N.A4, N.B4], 0, [N.G4, 0], [N.E4, 0], [N.D4, N.E4], 0, 0, 0
+];
+const BGM_MORNING_BASS = [
+  N.D3, 0, 0, N.A2, N.G2, 0, 0, N.A2,
+  N.E3, 0, 0, N.B2, N.D3, 0, N.A2, 0,
+  N.A2, 0, 0, N.E3, N.G2, 0, 0, N.D3,
+  N.A2, 0, N.G2, 0, N.D3, 0, N.A2, 0
+];
+
+// Phiên Chiều/Tối (Quán): Rộn ràng Lý Ngựa Ô / Hội Chợ Nổi Đêm (Ngũ cung G-A-B-D-E vui tươi, 32 bước)
+const BGM_EVENING_LEAD = [
+  [N.G4, 0], [N.A4, 0], [N.B4, N.A4], [N.D5, 0], [N.E5, N.D5], 0, [N.D5, 0], [N.B4, 0],
+  [N.A4, N.G4], [N.B4, 0], [N.A4, 0], [N.G4, 0], [N.E4, 0], [N.G4, 0], [N.A4, 0], 0,
+  [N.D5, 0], [N.E5, N.D5], [N.G5, 0], [N.E5, 0], [N.D5, N.E5], [N.B4, 0], [N.D5, 0], [N.E5, 0],
+  [N.D5, 0], [N.B4, N.A4], [N.A4, 0], [N.G4, 0], [N.G4, N.E4], 0, [N.D5, 0], 0
+];
+const BGM_EVENING_BASS = [
+  N.G2, 0, N.D3, 0, N.E3, 0, N.B2, 0,
+  N.A2, 0, N.E3, 0, N.G2, 0, N.D3, 0,
+  N.C3, 0, N.G3, 0, N.D3, 0, N.A2, 0,
+  N.E3, 0, N.D3, 0, N.G2, 0, N.D3, 0
+];
+
+// Nhạc nền Menu / Chợ / Shop: Đàn Tranh & Đàn Bầu Nam Bộ hoàng hôn trên bến nước
+const BGM_MENU_LEAD = [
+  [N.D4, 0], 0, [N.E4, 0], [N.G4, N.E4], [N.A4, 0], 0, [N.B4, N.A4], 0,
+  [N.A4, 0], 0, [N.G4, 0], [N.E4, 0], [N.D4, 0], 0, 0, 0,
+  [N.G4, 0], 0, [N.A4, N.G4], [N.D5, 0], [N.B4, 0], 0, [N.A4, N.B4], 0,
+  [N.G4, 0], [N.E4, 0], [N.D4, N.E4], 0, 0, 0, 0, 0
+];
+
+function tickBgmStep() {
+  if (!audioCtx || audioCtx.state !== "running" || !soundOn || masterVol <= 0.001 || bgmVol <= 0.001) return;
+  const now = audioCtx.currentTime + 0.02;
+  const idx = bgmStep % 32;
+  bgmStep++;
+
+  if (bgmTrack === "gather") {
+    const entry = BGM_MORNING_LEAD[idx];
+    const bass = BGM_MORNING_BASS[idx];
+    if (entry) {
+      const [note, bend] = entry;
+      playDanTranh(bgmFilter, note, 0.72, now, 0.25, bend || null);
+    }
+    if (bass) playDanKim(bgmFilter, bass, 0.85, now, 0.25);
+    // Đàn Bầu nhấn nhá câu lót sâu lắng ở cuối mỗi vế nhạc
+    if (idx === 13) playDanBau(bgmFilter, N.G4, N.A4, 0.95, now, 0.22);
+    if (idx === 29) playDanBau(bgmFilter, N.E4, N.D4, 1.05, now, 0.22);
+    // Song lang gõ điểm nhịp câu
+    if (idx === 6 || idx === 14 || idx === 22 || idx === 30) playSongLang(bgmFilter, now, 0.14);
+    if (idx % 8 === 0) {
+      playNoise(bgmFilter, 0.75, { when: now, filterType: "bandpass", freq: 520, freqEnd: 330, q: 1.4, vol: 0.035, attack: 0.12 });
+    }
+  } else if (bgmTrack === "quan") {
+    const entry = BGM_EVENING_LEAD[idx];
+    const bass = BGM_EVENING_BASS[idx];
+    if (entry) {
+      const [note, bend] = entry;
+      // Vế 1 Đàn Tranh lanh lảnh, vế 2 hòa thêm Sáo Trúc rộn ràng chợ nổi
+      playDanTranh(bgmFilter, note, 0.44, now, 0.24, bend || null);
+      if (idx >= 16 && idx % 2 === 0) {
+        playSaoTruc(bgmFilter, note, 0.42, now, 0.17, bend || null);
+      }
+    }
+    if (bass) playDanKim(bgmFilter, bass, 0.42, now, 0.27);
+    // Bộ gõ Trống Cơm + Song Lang rộn ràng kiểu Lý Ngựa Ô
+    if (idx % 4 === 0) playTrongCom(bgmFilter, now, 195, 0.24);
+    else if (idx % 4 === 2) playSongLang(bgmFilter, now, 0.17);
+    else if (idx % 4 === 3) playTrongCom(bgmFilter, now, 270, 0.13);
+  } else {
+    const entry = BGM_MENU_LEAD[idx];
+    const bass = BGM_MORNING_BASS[idx];
+    if (entry) {
+      const [note, bend] = entry;
+      playDanTranh(bgmFilter, note, 0.85, now, 0.22, bend || null);
+    }
+    if (bass) playDanKim(bgmFilter, bass, 0.95, now, 0.22);
+    if (idx === 13) playDanBau(bgmFilter, N.E4, N.G4, 1.0, now, 0.2);
+    if (idx === 28) playDanBau(bgmFilter, N.A4, N.D4, 1.15, now, 0.2);
+    if (idx === 14 || idx === 30) playSongLang(bgmFilter, now, 0.11);
+  }
+}
+
+function startBgmScheduler() {
+  if (bgmTimer) clearInterval(bgmTimer);
+  const stepMs = bgmTrack === "quan" ? 250 : bgmTrack === "gather" ? 310 : 350;
+  bgmTimer = setInterval(tickBgmStep, stepMs);
+}
+
+function syncBgmContext(snapObj) {
+  let target = "menu";
+  let underwater = false;
+  let ducked = Boolean(settingsLocalOpen);
+  if (snapObj) {
+    const scr = snapObj.screen || "playing";
+    if (snapObj.paused) ducked = true;
+    if (scr === "playing") {
+      target = snapObj.mode === "quan" ? "quan" : "gather";
+      if (target === "gather" && snapObj.player) {
+        const surfD = (snapObj.meta && snapObj.meta.surface_depth) ?? 0.5;
+        underwater = snapObj.player.at_surface !== undefined ? !snapObj.player.at_surface : ((snapObj.player.pos ? snapObj.player.pos[1] : 0) > surfD);
+      }
+    } else if (scr === "evening_intro" || scr === "market") {
+      target = "quan";
+    } else if (scr === "day_intro") {
+      target = "gather";
+    }
+  }
+  const trackChanged = target !== bgmTrack;
+  const filterChanged = underwater !== bgmUnderwater || ducked !== bgmDucked;
+  bgmTrack = target;
+  bgmUnderwater = underwater;
+  bgmDucked = ducked;
+  if (trackChanged && audioCtx) {
+    bgmStep = 0;
+    startBgmScheduler();
+  }
+  if ((trackChanged || filterChanged) && audioCtx) applyAudioGains();
+}
+
+function playSfx(name, data = {}) {
+  if (!soundOn || masterVol <= 0.001 || sfxVol <= 0.001) return;
+  const ac = ensureAudio();
+  if (!ac || ac.state !== "running") return;
+  const now = ac.currentTime;
+  switch (name) {
+    case "dive":
+      playNoise(sfxGain, 0.28, { when: now, filterType: "bandpass", freq: 1100, freqEnd: 260, q: 1.5, vol: 0.16 });
+      playTone(sfxGain, 420, 0.22, { when: now, type: "sine", vol: 0.12, slideTo: 160 });
+      break;
+    case "surface":
+      playNoise(sfxGain, 0.22, { when: now, filterType: "bandpass", freq: 500, freqEnd: 1800, q: 1.4, vol: 0.14 });
+      playTone(sfxGain, 320, 0.18, { when: now, type: "sine", vol: 0.1, slideTo: 620 });
+      break;
+    case "gather":
+      playTone(sfxGain, 523.25, 0.1, { when: now, type: "triangle", vol: 0.16, slideTo: 659.25 });
+      playTone(sfxGain, 783.99, 0.14, { when: now + 0.07, type: "sine", vol: 0.14 });
+      break;
+    case "fish_caught":
+      playNoise(sfxGain, 0.14, { when: now, filterType: "bandpass", freq: 1400, freqEnd: 700, q: 1.8, vol: 0.1 });
+      playTone(sfxGain, 523.25, 0.1, { when: now, type: "triangle", vol: 0.16 });
+      playTone(sfxGain, 659.25, 0.1, { when: now + 0.06, type: "triangle", vol: 0.16 });
+      playTone(sfxGain, 783.99, 0.14, { when: now + 0.12, type: "triangle", vol: 0.18 });
+      break;
+    case "pickup_item": {
+      const k = data.kind || "";
+      if (k === "oxygen_tank") {
+        // Tiếng xì bình oxy + bong bóng vui tai
+        playNoise(sfxGain, 0.22, { when: now, filterType: "highpass", freq: 1800, freqEnd: 3400, vol: 0.12 });
+        playTone(sfxGain, 440, 0.12, { when: now, type: "sine", vol: 0.14, slideTo: 740 });
+        playTone(sfxGain, 660, 0.14, { when: now + 0.09, type: "sine", vol: 0.14, slideTo: 988 });
+      } else if (k === "fins" || k === "diving_suit") {
+        // Tiếng tăng tốc vút qua nước
+        playNoise(sfxGain, 0.24, { when: now, filterType: "bandpass", freq: 600, freqEnd: 2600, q: 1.2, vol: 0.13 });
+        playTone(sfxGain, 392, 0.12, { when: now, type: "triangle", vol: 0.15, slideTo: 587 });
+        playTone(sfxGain, 587, 0.16, { when: now + 0.08, type: "triangle", vol: 0.16, slideTo: 880 });
+        if (k === "diving_suit") playTone(sfxGain, 1046.5, 0.2, { when: now + 0.15, type: "sine", vol: 0.14 });
+      } else if (k === "amulet") {
+        // Tiếng chuông vàng linh thiêng của Bùa hộ mệnh 8s
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, idx) => {
+          playTone(sfxGain, f, 0.45, { when: now + idx * 0.055, type: "sine", vol: 0.14 });
+        });
+      }
+      break;
+    }
+    case "amulet_block":
+      playTone(sfxGain, 987.77, 0.18, { when: now, type: "sine", vol: 0.14 });
+      playTone(sfxGain, 1318.5, 0.22, { when: now + 0.05, type: "sine", vol: 0.12 });
+      break;
+    case "jellyfish_hit":
+      // Tiếng sứa chích tê & giảm tốc
+      playTone(sfxGain, 480, 0.18, { when: now, type: "sawtooth", vol: 0.12, slideTo: 185, lp: 1400 });
+      playTone(sfxGain, 320, 0.24, { when: now + 0.07, type: "triangle", vol: 0.13, slideTo: 110 });
+      break;
+    case "customer_arrived":
+      playTone(sfxGain, 783.99, 0.16, { when: now, type: "sine", vol: 0.11 });
+      playTone(sfxGain, 1046.5, 0.22, { when: now + 0.08, type: "sine", vol: 0.11 });
+      break;
+    case "cook_started":
+      playNoise(sfxGain, 0.26, { when: now, filterType: "bandpass", freq: 2400, freqEnd: 1500, q: 0.9, vol: 0.12 });
+      playTone(sfxGain, 330, 0.08, { when: now, type: "triangle", vol: 0.1 });
+      break;
+    case "dish_ready":
+      // Chuông bếp "Ting!" rõ ràng
+      playTone(sfxGain, 1174.66, 0.34, { when: now, type: "sine", vol: 0.17 });
+      playTone(sfxGain, 2349.32, 0.22, { when: now, type: "sine", vol: 0.08 });
+      break;
+    case "dish_picked":
+    case "served":
+      playTone(sfxGain, 587.33, 0.09, { when: now, type: "sine", vol: 0.12, slideTo: 740 });
+      break;
+    case "paid":
+      playTone(sfxGain, 987.77, 0.12, { when: now, type: "triangle", vol: 0.16 });
+      playTone(sfxGain, 1318.51, 0.16, { when: now + 0.07, type: "triangle", vol: 0.17 });
+      if ((data.tip || 0) > 0) {
+        playTone(sfxGain, 1567.98, 0.22, { when: now + 0.14, type: "sine", vol: 0.16 });
+      }
+      break;
+    case "bought":
+    case "vendor_trade":
+      playTone(sfxGain, 783.99, 0.1, { when: now, type: "triangle", vol: 0.15 });
+      playTone(sfxGain, 1046.5, 0.16, { when: now + 0.07, type: "sine", vol: 0.15 });
+      break;
+    case "hold_full":
+    case "no_dish":
+    case "buy_failed":
+      playTone(sfxGain, 210, 0.12, { when: now, type: "triangle", vol: 0.14, slideTo: 150 });
+      playTone(sfxGain, 165, 0.12, { when: now + 0.09, type: "triangle", vol: 0.12, slideTo: 130 });
+      break;
+    case "dish_burnt":
+      playNoise(sfxGain, 0.32, { when: now, filterType: "lowpass", freq: 1500, vol: 0.16 });
+      playTone(sfxGain, 220, 0.25, { when: now, type: "sawtooth", vol: 0.12, slideTo: 110, lp: 900 });
+      break;
+    case "monster_hit":
+    case "choke":
+    case "faint":
+      playTone(sfxGain, 155, 0.28, { when: now, type: "sawtooth", vol: 0.18, slideTo: 65, lp: 700 });
+      playNoise(sfxGain, 0.18, { when: now, filterType: "lowpass", freq: 650, vol: 0.16 });
+      break;
+    case "oxygen_empty":
+      playTone(sfxGain, 520, 0.14, { when: now, type: "sine", vol: 0.15, slideTo: 390 });
+      playTone(sfxGain, 390, 0.18, { when: now + 0.16, type: "sine", vol: 0.15, slideTo: 290 });
+      break;
+    case "customer_left":
+      playTone(sfxGain, 392, 0.16, { when: now, type: "triangle", vol: 0.14, slideTo: 311 });
+      playTone(sfxGain, 293.66, 0.24, { when: now + 0.14, type: "triangle", vol: 0.13, slideTo: 220 });
+      break;
+    case "gather_end":
+    case "quan_end":
+    case "shop_end":
+      [523.25, 659.25, 783.99].forEach((f, idx) => playTone(sfxGain, f, 0.26, { when: now + idx * 0.08, type: "triangle", vol: 0.14 }));
+      break;
+    case "item_dropped":
+      playTone(sfxGain, 320, 0.1, { when: now, type: "sine", vol: 0.1, slideTo: 180 });
+      break;
+    case "dialogue_step": {
+      const pitchBySpeaker = { ut_sen: 620, di_tu: 460, anh_ba: 360, ong_nam: 310 };
+      const f = pitchBySpeaker[data.speaker] || 480;
+      playTone(sfxGain, f, 0.065, { when: now, type: "triangle", vol: 0.1, slideTo: f * 1.12 });
+      break;
+    }
+    case "ui_click":
+      playTone(sfxGain, 680, 0.05, { when: now, type: "sine", vol: 0.09, slideTo: 820 });
+      break;
+  }
+}
+
+function soundForEvent(name, data) {
+  playSfx(name, data || {});
+}
+
+// Tự động mở khóa Web Audio khi người chơi bấm chuột hoặc phím đầu tiên
+function unlockAudioOnGesture() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (snap) syncBgmContext(snap);
+}
+window.addEventListener("pointerdown", unlockAudioOnGesture, { passive: true });
+window.addEventListener("keydown", unlockAudioOnGesture, { passive: true });
 
 // ---------- Vào: Bàn phím + API /input & /action ----------
 const down = new Set();
@@ -1277,24 +1913,77 @@ function toggleLog() {
 }
 function toggleSound() {
   soundOn = !soundOn;
-  btnSound.textContent = soundOn ? "🔊" : "🔇";
-  btnSound.classList.toggle("active", soundOn);
-  if (soundOn) beep(660, 0.08, "sine", 0.05);
+  saveAudioPrefs();
+  syncAudioUi();
+  if (soundOn) {
+    ensureAudio();
+    applyAudioGains();
+    playSfx("ui_click");
+  } else {
+    applyAudioGains();
+  }
+}
+function openSettings() {
+  playSfx("ui_click");
+  const scr = snap ? (snap.screen || "playing") : "menu";
+  if (scr === "menu" || scr === "exited" || scr === "summary") {
+    settingsLocalOpen = true;
+    syncBgmContext(snap);
+    updateHudDom();
+  } else {
+    down.clear();
+    pushInput();
+    sendAction("pause");
+  }
+}
+function closeSettings() {
+  playSfx("ui_click");
+  settingsLocalOpen = false;
+  if (snap && snap.paused) sendAction("resume");
+  syncBgmContext(snap);
+  updateHudDom();
+}
+function toggleSettings() {
+  const isOpen = settingsLocalOpen || Boolean(snap && snap.paused && !guideOpen && !bagOpen);
+  if (isOpen) closeSettings(); else openSettings();
 }
 
-btnPause.addEventListener("click", () => { sendAction("toggle_pause"); btnPause.blur(); });
+if (volMasterEl) volMasterEl.addEventListener("input", () => {
+  masterVol = Number(volMasterEl.value) / 100;
+  if (masterVol > 0 && !soundOn) soundOn = true;
+  saveAudioPrefs(); syncAudioUi(); ensureAudio(); applyAudioGains();
+});
+if (volBgmEl) volBgmEl.addEventListener("input", () => {
+  bgmVol = Number(volBgmEl.value) / 100;
+  if (bgmVol > 0 && !soundOn) soundOn = true;
+  saveAudioPrefs(); syncAudioUi(); ensureAudio(); applyAudioGains();
+});
+if (volSfxEl) volSfxEl.addEventListener("input", () => {
+  sfxVol = Number(volSfxEl.value) / 100;
+  if (sfxVol > 0 && !soundOn) soundOn = true;
+  saveAudioPrefs(); syncAudioUi(); ensureAudio(); applyAudioGains();
+});
+if (btnTestSfx) btnTestSfx.addEventListener("click", () => { ensureAudio(); playSfx("paid", { tip: 5 }); btnTestSfx.blur(); });
+if (btnTitleSettings) btnTitleSettings.addEventListener("click", () => { btnTitleSettings.blur(); openSettings(); });
+if (btnPauseCloseX) btnPauseCloseX.addEventListener("click", () => { btnPauseCloseX.blur(); closeSettings(); });
+
+btnPause.addEventListener("click", () => { toggleSettings(); btnPause.blur(); });
 btnLog.addEventListener("click", () => { toggleLog(); btnLog.blur(); });
 btnSound.addEventListener("click", () => { toggleSound(); btnSound.blur(); });
-btnRestart.addEventListener("click", () => { restartGame(); btnRestart.blur(); });
-btnPauseResume.addEventListener("click", () => { sendAction("resume"); btnPauseResume.blur(); });
-btnPauseRestart.addEventListener("click", () => { restartGame(); btnPauseRestart.blur(); });
-btnPauseMenu.addEventListener("click", () => { down.clear(); pushInput(); sendAction("menu"); btnPauseMenu.blur(); });
+btnRestart.addEventListener("click", () => { settingsLocalOpen = false; restartGame(); btnRestart.blur(); });
+btnPauseResume.addEventListener("click", () => { closeSettings(); btnPauseResume.blur(); });
+btnPauseRestart.addEventListener("click", () => { settingsLocalOpen = false; restartGame(); btnPauseRestart.blur(); });
+btnPauseMenu.addEventListener("click", () => { settingsLocalOpen = false; down.clear(); pushInput(); sendAction("menu"); btnPauseMenu.blur(); });
 
 function resolveMoveDir(e) { return CODE_MOVE[e.code] || KEY_MOVE[(e.key || "").toLowerCase()] || null; }
 
 addEventListener("keydown", (e) => {
   const code = e.code || "";
   const k = (e.key || "").toLowerCase();
+  if ((code === "ArrowUp" || code === "ArrowDown" || code === "ArrowLeft" || code === "ArrowRight") &&
+      (!document.activeElement || document.activeElement.tagName !== "INPUT")) {
+    e.preventDefault();
+  }
   if (e.repeat) {
     if (code === "Space" || k === " " || code.startsWith("Arrow")) e.preventDefault();
     return;
@@ -1336,14 +2025,18 @@ addEventListener("keydown", (e) => {
   }
   if (guideOpen || bagOpen) return;
   if (code === "Escape" || code === "KeyP" || k === "p") {
+    if (settingsLocalOpen) {
+      e.preventDefault();
+      closeSettings();
+      return;
+    }
     if (scr !== "menu" && scr !== "exited" && scr !== "summary") {
       e.preventDefault();
-      down.clear();
-      pushInput();
-      sendAction("toggle_pause");
+      toggleSettings();
       return;
     }
   }
+  if (settingsLocalOpen) return;
   if (code === "KeyH" || k === "h") { toggleLog(); return; }
   if (code === "KeyM" || k === "m") { toggleSound(); return; }
   if (code === "KeyR" || k === "r") { restartGame(); return; }
@@ -1454,6 +2147,21 @@ function describeEvent(ev) {
     case "resumed":        return { cat: "info",   text: "Tiếp tục chơi" };
     case "current_warning": return { cat: "warn", text: "🌊 Sắp có dòng nước lũ!" };
     case "spoiled": return { cat: "warn", text: `${kindMeta(d.kind).name} vừa ươn` };
+    case "pickup_item": {
+      if (d.kind === "oxygen_tank") return { cat: "good", text: `🫧 Bình Oxy mini (+${d.oxy_s || 12}s oxy)` };
+      if (d.kind === "fins") return { cat: "info", text: `🦶 Nhặt Chân vịt (+35% tốc độ ${d.duration_s || 12}s)` };
+      if (d.kind === "diving_suit") return { cat: "info", text: `🤿 Nhặt Đồ lặn (+55% tốc độ ${d.duration_s || 15}s)` };
+      if (d.kind === "amulet") return { cat: "good", text: `🛡️ Bùa hộ mệnh! Miễn mất máu & oxy ${d.duration_s || 8}s` };
+      return { cat: "good", text: "Nhặt vật phẩm hỗ trợ" };
+    }
+    case "amulet_block": return { cat: "good", text: "🛡️ Bùa hộ mệnh đỡ đòn Sứa!" };
+    case "jellyfish_hit": return { cat: "purple", text: `🪼 Chạm phải Sứa! Bị làm chậm ${d.slow_s || 3.5}s` };
+    case "buff_expired": {
+      if (d.kind === "amulet") return { cat: "warn", text: "🛡️ Hết hiệu lực Bùa hộ mệnh" };
+      if (d.kind === "fins") return { cat: "info", text: "🦶 Hết hiệu lực Chân vịt" };
+      if (d.kind === "diving_suit") return { cat: "info", text: "🤿 Hết hiệu lực Đồ lặn" };
+      return null;
+    }
     default: return null;
   }
 }
@@ -1482,7 +2190,7 @@ function ingestEvents(events) {
       monsterHitFlashUntilMs = now + 1800;
     }
     const info = describeEvent(ev);
-    soundForEvent(ev.name);
+    soundForEvent(ev.name, ev.data);
     if (!info) continue;
     const col = info.cat === "good" ? "#a5d6a7" : info.cat === "warn" ? "#ffcc80" : info.cat === "bad" ? "#ff8a80" : info.cat === "purple" ? "#ea80fc" : "#b3e5fc";
     const worldPos = snap && snap.player && snap.player.pos ? [...snap.player.pos] : null;
@@ -1506,6 +2214,7 @@ async function poll() {
     if (snap && (next.mode !== snap.mode || next.screen !== snap.screen)) toasts = [];
     snap = next;
     offline = false;
+    syncBgmContext(snap);
     ingestEvents(snap.events);
     updateHudDom();
   } catch (e) {
@@ -1643,8 +2352,9 @@ function updateHudDom() {
   }
 
   tickLabelEl.textContent = `t${snap.tick ?? 0}`;
-  btnPause.textContent = snap.paused ? "▶" : "⏸";
-  btnPause.classList.toggle("active", Boolean(snap.paused));
+  const settingsOpen = (Boolean(snap.paused) && !guideOpen && !bagOpen) || settingsLocalOpen;
+  btnPause.textContent = settingsOpen ? "⚙ Đóng" : "⚙ Cài đặt";
+  btnPause.classList.toggle("active", settingsOpen);
 
   if (offline) {
     alertBannerEl.className = "banner show";
@@ -1670,13 +2380,18 @@ function updateHudDom() {
     eventListEl.innerHTML = evHtml || `<div style="color:var(--muted);padding:6px;">Chưa có sự kiện nào.</div>`;
   }
 
-  // Pause overlay (Esc / P — không đè lên Sổ tay hoặc Balo)
-  pauseModalEl.classList.toggle("show", Boolean(snap.paused) && !guideOpen && !bagOpen);
+  // Settings & Pause overlay (Esc / P / nút ⚙ Cài đặt — không đè lên Sổ tay hoặc Balo)
+  pauseModalEl.classList.toggle("show", settingsOpen);
   if (bagOpen) renderBagContent();
-  if (snap.paused) {
-    pauseSubEl.textContent = snap.screen === "shop"
-      ? "Cửa hàng (Shop) và mọi bộ đếm đã tạm dừng."
-      : "Mọi bộ đếm thời gian và mô phỏng đã tạm dừng.";
+  if (settingsOpen) {
+    const isMenuNow = (snap.screen || "playing") === "menu" || (snap.screen || "") === "exited";
+    if (btnPauseMenu) btnPauseMenu.style.display = isMenuNow ? "none" : "";
+    if (btnPauseRestart) btnPauseRestart.style.display = isMenuNow ? "none" : "";
+    pauseSubEl.textContent = isMenuNow
+      ? "Chỉnh âm lượng nhạc nền (Sáng/Chiều), hiệu ứng (SFX) và độ tương phản."
+      : (snap.screen === "shop"
+        ? "Tiệm của Anh Ba và mọi bộ đếm đã tạm dừng."
+        : "Trò chơi đã tạm dừng. Bạn có thể chỉnh âm lượng và độ tương phản ngay tại đây.");
   }
 
   // 3 cảnh báo dễ nhận biết (chữ + biểu tượng): Thủy quái gần, Oxy sắp hết/cạn, Khách sắp giận
@@ -1722,15 +2437,21 @@ function updateHudDom() {
     const oxyMax = p.oxygen_max_ticks || Math.round((meta.oxygen_max_s || 30) * 60);
     const oxyPct = oxyMax > 0 ? Math.max(0, Math.min(100, (oxy / oxyMax) * 100)) : 0;
     const oxyLow = oxyPct < 25;
+    const buffs = snap.buffs || {};
+    const amulT = buffs.amulet_ticks || 0;
+    const spdT = buffs.speed_ticks || 0;
+    const spdKind = buffs.speed_kind || null;
+    const slwT = buffs.slow_ticks || 0;
     const topKey = JSON.stringify([
       "gather", snap.day, snap.days_total, Math.ceil((snap.time_left_ticks || 0) / 60), lowTime,
       Math.round(oxy / 3), oxyMax, p.at_surface, p.zero_oxy_ticks, p.hp, p.hp_max, p.invuln_ticks > 0,
       Math.ceil((p.catch_cd_ticks || 0) / 6), readyNodes, nodes.length, fishCount, depthVal.toFixed(1),
-      (snap.monsters || []).length, monsterWarn
+      (snap.monsters || []).length, monsterWarn,
+      Math.ceil(amulT / 6), Math.ceil(spdT / 6), spdKind, Math.ceil(slwT / 6)
     ]);
     if (topKey !== lastTopKey) {
       lastTopKey = topKey;
-      const oxyCol = oxyLow ? "#ef5350" : oxyPct < 50 ? "#ffa726" : "#4fc3f7";
+      const oxyCol = amulT > 0 ? "#ffd54f" : oxyLow ? "#ef5350" : oxyPct < 50 ? "#ffa726" : "#4fc3f7";
       const zeroOxy = p.zero_oxy_ticks || 0;
       const chokeMax = meta.choke_interval_ticks || 60;
       const chokePct = Math.min(100, (zeroOxy / chokeMax) * 100);
@@ -1743,24 +2464,30 @@ function updateHudDom() {
         ${dayBadge}
         <span class="badge gather">🌊 Sáng</span>
         <span class="clock ${lowTime ? "low" : ""}">⏱ ${fmtTime(snap.time_left_ticks)}</span>
-        <div class="oxy-wrap ${oxyLow ? "low" : ""}">
+        <div class="oxy-wrap ${oxyLow && amulT <= 0 ? "low" : ""}">
           <div class="oxy-head">
             <span><b>Oxy</b> ${(oxy / 60).toFixed(1)}s</span>
-            <span>${oxy <= 0 && !atSurf0 ? "HẾT HƠI!" : atSurf0 ? "Hồi oxy" : "Đang lặn"}</span>
+            <span>${amulT > 0 ? "🛡️ BÙA BẢO VỆ" : oxy <= 0 && !atSurf0 ? "HẾT HƠI!" : atSurf0 ? "Hồi oxy" : "Đang lặn"}</span>
           </div>
-          <div class="bar-track"><div class="bar-fill ${oxyLow ? "blink" : ""}" style="width:${oxyPct.toFixed(1)}%;background:${oxyCol};"></div></div>
+          <div class="bar-track" style="${amulT > 0 ? "border-color:#ffd54f;box-shadow:0 0 8px rgba(255,213,79,0.55);" : ""}"><div class="bar-fill ${oxyLow && amulT <= 0 ? "blink" : ""}" style="width:${oxyPct.toFixed(1)}%;background:${oxyCol};"></div></div>
           ${zeroOxy > 0 ? `<div class="choke-track"><div class="choke-fill" style="width:${chokePct.toFixed(1)}%;"></div></div>` : ""}
         </div>
-        <div class="hearts" title="Máu">${heartsHtml}<span class="heart-num">${hp}/${hpMax}</span></div>
+        <div class="hearts" title="Máu" style="${amulT > 0 ? "border-color:#ffd54f;background:rgba(255,213,79,0.18);" : ""}">${heartsHtml}<span class="heart-num">${hp}/${hpMax}</span></div>
       `;
 
       const cd = p.catch_cd_ticks || 0;
+      const buffBadges = [
+        amulT > 0 ? `<span class="badge gold-buff">🛡️ Bùa ${(amulT / 60).toFixed(1)}s</span>` : "",
+        spdT > 0 ? `<span class="badge speed-buff">${spdKind === "diving_suit" ? "🤿 Đồ lặn +55%" : "🦶 Chân vịt +35%"} ${(spdT / 60).toFixed(1)}s</span>` : "",
+        slwT > 0 ? `<span class="badge slow-debuff">🪼 Sứa chậm ${(slwT / 60).toFixed(1)}s</span>` : ""
+      ].join("");
+      if (buffStackEl) buffStackEl.innerHTML = (snap.screen || "playing") === "playing" ? buffBadges : "";
       topCenterEl.innerHTML = `
-        <span class="stat-pill ${inDangerDepth ? "deep" : ""}">Độ sâu: <b>${depthVal.toFixed(1)}m</b></span>
+        <span class="stat-pill ${inDangerDepth ? "deep" : ""}" style="min-width:136px;justify-content:center;">Độ sâu: <b>${depthVal.toFixed(1)}m</b></span>
         <span class="chip">🌿 ${readyNodes}/${nodes.length}</span>
         <span class="chip">🐟 ${fishCount}</span>
         ${cd > 0 ? `<span class="badge warn">Hồi bắt ${(cd / 60).toFixed(1)}s</span>` : `<span class="chip">Bắt: Sẵn</span>`}
-        ${(p.invuln_ticks || 0) > 0 ? `<span class="badge ok">Bất tử</span>` : ""}
+        ${(p.invuln_ticks || 0) > 0 && amulT <= 0 ? `<span class="badge ok">Bất tử</span>` : ""}
       `;
     }
 
@@ -1835,6 +2562,7 @@ function updateHudDom() {
     }
   } else {
     // QUAN mode HUD v1.1
+    if (buffStackEl && buffStackEl.innerHTML) buffStackEl.innerHTML = "";
     const meta = snap.meta || {};
     const handDish = extractDishId(snap.hand);
     const handOrderId = snap.hand && typeof snap.hand === "object" ? snap.hand.order_id : null;
@@ -2015,6 +2743,7 @@ function renderActiveDialogue() {
   const isLast = activeDialogue.idx >= activeDialogue.lines.length - 1;
   vnStepHintEl.textContent = isLast ? "Hoàn tất hội thoại ▼" : `Tiếp tục (${activeDialogue.idx + 1}/${activeDialogue.lines.length}) ▼`;
   vnDialogueEl.classList.add("show");
+  playSfx("dialogue_step", { speaker: line.speaker });
 }
 
 function startDialogueIfNeeded(scr, snapObj) {
@@ -2401,6 +3130,36 @@ function renderGuideThumb(canvas, kind) {
     gctx.strokeStyle = "#558b2f"; gctx.lineWidth = 7; gctx.lineCap = "round";
     gctx.beginPath(); gctx.moveTo(-18, 6); gctx.quadraticCurveTo(-6, -12, 4, 0); gctx.quadraticCurveTo(12, 10, 18, -2); gctx.stroke();
     gctx.fillStyle = "#ffeb3b"; gctx.beginPath(); gctx.arc(16, -4, 2.2, 0, Math.PI * 2); gctx.fill();
+  } else if (kind === "oxygen_tank") {
+    gctx.fillStyle = "#29b6f6"; gctx.beginPath(); gctx.roundRect(-9, -11, 18, 25, 6); gctx.fill();
+    gctx.fillStyle = "#ffd54f"; gctx.fillRect(-9, -4, 18, 6);
+    gctx.fillStyle = "#cfd8dc"; gctx.fillRect(-4, -17, 8, 6);
+    gctx.fillStyle = "#e0f7fa"; gctx.font = "bold 9px sans-serif"; gctx.textAlign = "center"; gctx.fillText("O2", 0, 11);
+  } else if (kind === "fins") {
+    gctx.fillStyle = "#26c6da";
+    gctx.beginPath(); gctx.ellipse(-7, 2, 6, 15, -0.25, 0, Math.PI * 2); gctx.fill();
+    gctx.beginPath(); gctx.ellipse(7, 2, 6, 15, 0.25, 0, Math.PI * 2); gctx.fill();
+    gctx.fillStyle = "#ff9800";
+    gctx.beginPath(); gctx.arc(-5, -8, 4.5, 0, Math.PI * 2); gctx.arc(5, -8, 4.5, 0, Math.PI * 2); gctx.fill();
+  } else if (kind === "diving_suit") {
+    gctx.fillStyle = "#1565c0";
+    gctx.beginPath(); gctx.roundRect(-10, -13, 20, 20, 5); gctx.fill();
+    gctx.fillRect(-9, 6, 7, 11); gctx.fillRect(2, 6, 7, 11);
+    gctx.fillStyle = "#ffd54f"; gctx.fillRect(-2, -11, 4, 18);
+    gctx.fillStyle = "#4dd0e1"; gctx.fillRect(-10, -4, 20, 3);
+  } else if (kind === "amulet") {
+    gctx.fillStyle = "#ffd54f";
+    gctx.beginPath(); gctx.moveTo(0, -17); gctx.lineTo(13, 0); gctx.lineTo(0, 17); gctx.lineTo(-13, 0); gctx.closePath(); gctx.fill();
+    gctx.fillStyle = "#c62828";
+    gctx.beginPath(); gctx.moveTo(0, -12); gctx.lineTo(8.5, 0); gctx.lineTo(0, 12); gctx.lineTo(-8.5, 0); gctx.closePath(); gctx.fill();
+    gctx.fillStyle = "#fff59d"; gctx.beginPath(); gctx.arc(0, 0, 4, 0, Math.PI * 2); gctx.fill();
+  } else if (kind === "jellyfish") {
+    gctx.fillStyle = "rgba(234, 128, 252, 0.85)";
+    gctx.beginPath(); gctx.arc(0, -4, 13, Math.PI, 0); gctx.closePath(); gctx.fill();
+    gctx.strokeStyle = "#f48fb1"; gctx.lineWidth = 2;
+    for (const tx of [-9, -3, 3, 9]) {
+      gctx.beginPath(); gctx.moveTo(tx, -3); gctx.quadraticCurveTo(tx + 3, 7, tx - 2, 16); gctx.stroke();
+    }
   }
   gctx.restore();
 }
@@ -2414,9 +3173,16 @@ function renderGuideContent() {
     { kind: "ca_loc",         where: "Giữa (d = 8–20m)",  note: "Bắt [Space] · 1 con/đàn" },
     { kind: "ca_keo",         where: "Sâu (d = 22–28m)",  note: "Bắt [Space] · 2 con/đàn (cẩn thận Cá Sấu!)" }
   ];
+  const underwaterGear = [
+    { kind: "oxygen_tank", name: "Bình Oxy mini", where: "Vùng trung–sâu (11–22m)", note: "Bơi chạm vào để hồi ngay +35% lượng Oxy tối đa." },
+    { kind: "fins",        name: "Chân vịt",      where: "Vùng trung (8–17m)", note: "Tăng +35% tốc độ bơi trong 10 giây." },
+    { kind: "diving_suit", name: "Đồ lặn chuyên dụng", where: "Vùng sâu (14–24m)", note: "Tăng +55% tốc độ bơi trong 12 giây & giảm tác động chậm của Sứa." },
+    { kind: "amulet",      name: "Bùa hộ mệnh",   where: "Vùng sâu (16–26m)", note: "Trong 8 giây: KHÔNG mất máu, KHÔNG hao Oxy và miễn nhiễm Sứa!" }
+  ];
   const monsters = [
-    { kind: "ca_sau", name: "Cá Sấu Năm Chèo", where: "Vùng sâu 10–30 m", note: "Có thể đuổi theo khi bạn đến gần. Bị cắn sẽ mất máu và rơi một nửa số hàng trong giỏ." },
-    { kind: "ran",    name: "Rắn Hổ Mây", where: "Vùng nước 8–20 m", note: "Bơi lên vùng nước nông hơn 8 m để cắt đuôi." }
+    { kind: "ca_sau",    name: "Cá Sấu Năm Chèo", where: "Vùng sâu 10–30 m", note: "Đuổi theo khi đến gần. Bị cắn mất máu và rơi nửa số hàng trong giỏ." },
+    { kind: "ran",       name: "Rắn Hổ Mây",      where: "Vùng nước 8–20 m", note: "Bơi lên vùng nước nông hơn 8 m để cắt đuôi." },
+    { kind: "jellyfish", name: "Sứa phát sáng",   where: "Dưới nước 5–24 m", note: "Chạm vào sẽ bị chích tê & làm chậm tốc độ bơi trong 3.5 giây (Bùa hộ mệnh chặn được)." }
   ];
   const fullMenu = (snap && (snap.full_menu || snap.menu)) || {};
   if (fullMenu.rau_muong_xao) floraFauna.push(
@@ -2435,6 +3201,16 @@ function renderGuideContent() {
       </div>
     </div>`;
   }).join("");
+
+  const gearHtml = underwaterGear.map((g) => `
+    <div class="stat-box" style="display:flex;align-items:center;gap:10px;border-color:rgba(79,195,247,0.45);">
+      <canvas class="guide-thumb" data-kind="${g.kind}" width="54" height="54" style="width:54px;height:54px;flex-shrink:0;background:rgba(79,195,247,0.12);border-radius:10px;"></canvas>
+      <div>
+        <div style="font-weight:800;color:#80deea;">${escapeHtml(g.name)}</div>
+        <div class="k">${escapeHtml(g.where)}</div>
+        <div class="chip-sub">${escapeHtml(g.note)}</div>
+      </div>
+    </div>`).join("");
 
   const monsterHtml = monsters.map((m) => `
     <div class="stat-box" style="display:flex;align-items:center;gap:10px;border-color:rgba(206,147,216,0.45);">
@@ -2458,7 +3234,11 @@ function renderGuideContent() {
       <div class="screen-grid">${cardsHtml}</div>
     </div>
     <div>
-      <div style="font-weight:800;color:var(--purple);margin-bottom:6px;">🐊 Thủy quái &amp; Dòng nước lũ</div>
+      <div style="font-weight:800;color:#4dd0e1;margin-bottom:6px;">🧰 Vật phẩm hỗ trợ dưới nước</div>
+      <div class="screen-grid">${gearHtml}</div>
+    </div>
+    <div>
+      <div style="font-weight:800;color:var(--purple);margin-bottom:6px;">🐊 Thủy quái, Sứa &amp; Dòng nước lũ</div>
       <div class="screen-grid">${monsterHtml}</div>
     </div>
     <div>
@@ -2506,10 +3286,13 @@ bottomLeftEl.addEventListener("click", (e) => {
   btn.blur();
   toggleBag();
 });
-function renderBagContent() {
+function renderBagContent(force = false) {
   if (!snap) return;
   const hold = snap.hold || [];
   const cap = snap.hold_capacity || (snap.meta && snap.meta.hold_capacity) || 12;
+  const sig = JSON.stringify([hold, cap]);
+  if (!force && bagBodyEl.dataset.sig === sig) return;
+  bagBodyEl.dataset.sig = sig;
   if (bagTitleEl) bagTitleEl.textContent = `🎒 Balo của Út Sen (${hold.length}/${cap} ô)`;
   if (!hold.length) {
     bagBodyEl.innerHTML = `<div class="stat-box" style="text-align:center;"><span class="chip-sub">Balo đang trống — hãy hái rau trên mặt nước hoặc lặn bắt cá nhé!</span></div>`;
@@ -2542,7 +3325,8 @@ function renderBagContent() {
 function openBag() {
   if (bagOpen || !snap || snap.mode !== "gather") return;
   bagOpen = true;
-  renderBagContent();
+  bagBodyEl.dataset.sig = "";
+  renderBagContent(true);
   bagModalEl.classList.add("show");
   const scr = snap.screen || "playing";
   if (!snap.paused && scr === "playing") {
@@ -2569,8 +3353,8 @@ bagBodyEl.addEventListener("click", (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
   btn.blur();
-  if (btn.dataset.dropId) { sendAction("drop_hold_item", { item_id: btn.dataset.dropId }); }
-  else if (btn.dataset.dropIdx !== undefined) { sendAction("drop_hold_item", { index: Number(btn.dataset.dropIdx) }); }
+  if (btn.dataset.dropId) { playSfx("item_dropped"); sendAction("drop_hold_item", { item_id: btn.dataset.dropId }); }
+  else if (btn.dataset.dropIdx !== undefined) { playSfx("item_dropped"); sendAction("drop_hold_item", { index: Number(btn.dataset.dropIdx) }); }
 });
 
 screenCardEl.addEventListener("click", (e) => {
@@ -2600,9 +3384,7 @@ function fit() {
   return [w, h];
 }
 function getHudInsets() {
-  const top = Math.max(68, hudTopEl.getBoundingClientRect().height + 4);
-  const bottom = Math.max(78, hudBottomEl.getBoundingClientRect().height + 4);
-  return { top, bottom };
+  return { top: 72, bottom: 80 };
 }
 function drawText(s, x, y, o = {}) {
   ctx.font = (o.bold ? "700 " : "") + (o.size || 14) + "px system-ui, -apple-system, sans-serif";
@@ -2780,6 +3562,142 @@ function drawMonster(m, sx, sy, s) {
   }
   ctx.restore();
 
+}
+
+// ---------- Vẽ Vật phẩm dưới nước (Bình oxy mini, Chân vịt, Đồ lặn, Bùa hộ mệnh) & Con Sứa ----------
+function drawUnderwaterPickup(pk, sx, sy, s, playerPos) {
+  const px = sx(pk.pos[0]);
+  const bob = Math.sin(animTime * 3.2 + (pk.phase || 0)) * 0.24 * s;
+  const py = sy(pk.pos[1]) + bob;
+  const k = pk.kind;
+  const near = playerPos && Math.hypot(playerPos[0] - pk.pos[0], playerPos[1] - pk.pos[1]) <= 6.5;
+
+  // Vầng sáng nổi bật dưới nước
+  const glowCol = k === "amulet" ? "rgba(255, 213, 79, 0.45)"
+    : k === "oxygen_tank" ? "rgba(79, 195, 247, 0.42)"
+    : k === "diving_suit" ? "rgba(0, 229, 255, 0.42)"
+    : "rgba(38, 198, 218, 0.38)";
+  const g = ctx.createRadialGradient(px, py, 0.15 * s, px, py, 1.55 * s);
+  g.addColorStop(0, glowCol);
+  g.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(px, py, 1.55 * s, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(px, py);
+  if (k === "oxygen_tank") {
+    // Bình oxy mini
+    roundRectPath(-0.42 * s, -0.58 * s, 0.84 * s, 1.18 * s, 0.28 * s);
+    ctx.fillStyle = "#29b6f6"; ctx.fill();
+    ctx.strokeStyle = "#e1f5fe"; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = "#ffd54f"; ctx.fillRect(-0.42 * s, -0.18 * s, 0.84 * s, 0.32 * s);
+    ctx.fillStyle = "#cfd8dc"; ctx.fillRect(-0.18 * s, -0.84 * s, 0.36 * s, 0.26 * s);
+    ctx.fillStyle = "#ff7043"; ctx.fillRect(-0.3 * s, -0.88 * s, 0.6 * s, 0.1 * s);
+    // Bọt khí nhỏ bay lên từ bình
+    const bPhase = (animTime * 2 + (pk.phase || 0)) % 1;
+    ctx.strokeStyle = "rgba(224,247,250,0.75)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0.2 * s, (-0.9 - bPhase * 0.9) * s, 0.13 * s, 0, Math.PI * 2); ctx.stroke();
+  } else if (k === "fins") {
+    // Đôi chân vịt tăng tốc
+    ctx.rotate(Math.sin(animTime * 2.6 + (pk.phase || 0)) * 0.14);
+    ctx.fillStyle = "#26c6da"; ctx.strokeStyle = "#e0f7fa"; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.ellipse(-0.36 * s, 0.1 * s, 0.28 * s, 0.72 * s, -0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0.36 * s, 0.1 * s, 0.28 * s, 0.72 * s, 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ff9800";
+    ctx.beginPath(); ctx.arc(-0.26 * s, -0.35 * s, 0.2 * s, 0, Math.PI * 2); ctx.arc(0.26 * s, -0.35 * s, 0.2 * s, 0, Math.PI * 2); ctx.fill();
+  } else if (k === "diving_suit") {
+    // Đồ lặn chuyên dụng tăng tốc mạnh
+    roundRectPath(-0.52 * s, -0.62 * s, 1.04 * s, 0.94 * s, 0.22 * s);
+    ctx.fillStyle = "#1565c0"; ctx.fill();
+    ctx.strokeStyle = "#80deea"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "#1565c0";
+    ctx.fillRect(-0.46 * s, 0.28 * s, 0.36 * s, 0.48 * s);
+    ctx.fillRect(0.1 * s, 0.28 * s, 0.36 * s, 0.48 * s);
+    ctx.fillStyle = "#ffd54f"; ctx.fillRect(-0.1 * s, -0.52 * s, 0.2 * s, 0.8 * s);
+    ctx.fillStyle = "#00e5ff"; ctx.fillRect(-0.52 * s, -0.18 * s, 1.04 * s, 0.16 * s);
+  } else if (k === "amulet") {
+    // Bùa hộ mệnh 8s: tia sáng xoay + mặt bùa vàng đỏ truyền thống
+    ctx.save();
+    ctx.rotate(animTime * 1.4);
+    ctx.strokeStyle = "rgba(255, 224, 130, 0.65)";
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 0.72 * s, Math.sin(a) * 0.72 * s);
+      ctx.lineTo(Math.cos(a) * 1.15 * s, Math.sin(a) * 1.15 * s);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = "#ffd54f";
+    ctx.beginPath(); ctx.moveTo(0, -0.82 * s); ctx.lineTo(0.62 * s, 0); ctx.lineTo(0, 0.82 * s); ctx.lineTo(-0.62 * s, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#c62828";
+    ctx.beginPath(); ctx.moveTo(0, -0.56 * s); ctx.lineTo(0.4 * s, 0); ctx.lineTo(0, 0.56 * s); ctx.lineTo(-0.4 * s, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff9c4"; ctx.beginPath(); ctx.arc(0, 0, 0.18 * s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  if (near || document.body.classList.contains("high-contrast")) {
+    const lbl = k === "oxygen_tank" ? "+Oxy" : k === "fins" ? "Chân vịt" : k === "diving_suit" ? "Đồ lặn" : "Bùa 8s";
+    drawText(lbl, px, py - 1.15 * s, { size: 11, bold: true, align: "center", color: k === "amulet" ? "#fff59d" : "#e0f7fa", shadow: true });
+  }
+}
+
+function drawJellyfish(jf, sx, sy, s) {
+  const pos = renderPos(jf.id, jf.pos);
+  const jx = sx(pos[0]), jy = sy(pos[1]);
+  const pulse = Math.sin(animTime * 4.5 + (jf.phase || 0));
+  const rx = (0.86 + pulse * 0.12) * s;
+  const ry = (0.68 - pulse * 0.08) * s;
+
+  // Vầng phát quang tím-hồng & vòng cảnh báo nhẹ
+  const g = ctx.createRadialGradient(jx, jy, 0.1 * s, jx, jy, 1.75 * s);
+  g.addColorStop(0, "rgba(234, 128, 252, 0.36)");
+  g.addColorStop(1, "rgba(186, 104, 200, 0)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(jx, jy, 1.75 * s, 0, Math.PI * 2); ctx.fill();
+
+  ctx.strokeStyle = "rgba(244, 143, 177, 0.32)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.arc(jx, jy, 1.45 * s, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.save();
+  ctx.translate(jx, jy);
+  // 6 xúc tu uốn lượn mềm mại
+  for (let i = -2.5; i <= 2.5; i += 1) {
+    const tx = i * 0.26 * s;
+    const wave1 = Math.sin(animTime * 5 + i + (jf.phase || 0)) * 0.24 * s;
+    const wave2 = Math.cos(animTime * 4.2 + i * 1.4 + (jf.phase || 0)) * 0.3 * s;
+    ctx.strokeStyle = Math.abs(i) < 1.6 ? "rgba(248, 187, 208, 0.85)" : "rgba(206, 147, 216, 0.7)";
+    ctx.lineWidth = Math.max(1.2, 0.1 * s);
+    ctx.beginPath();
+    ctx.moveTo(tx, 0.05 * s);
+    ctx.bezierCurveTo(tx + wave1, 0.55 * s, tx - wave1, 1.05 * s, tx + wave2, 1.48 * s);
+    ctx.stroke();
+  }
+  // Tán dù sứa bán trong suốt
+  const bellGrad = ctx.createRadialGradient(0, -0.25 * s, 0.1 * s, 0, 0, rx);
+  bellGrad.addColorStop(0, "rgba(255, 224, 245, 0.95)");
+  bellGrad.addColorStop(0.55, "rgba(234, 128, 252, 0.82)");
+  bellGrad.addColorStop(1, "rgba(142, 36, 170, 0.72)");
+  ctx.fillStyle = bellGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, Math.PI, 0);
+  ctx.quadraticCurveTo(rx * 0.5, 0.22 * s, 0, 0.08 * s);
+  ctx.quadraticCurveTo(-rx * 0.5, 0.22 * s, -rx, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 240, 255, 0.8)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // Đốm sáng trên dù sứa
+  ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+  ctx.beginPath(); ctx.arc(-0.28 * s, -0.25 * s, 0.11 * s, 0, Math.PI * 2); ctx.arc(0.24 * s, -0.3 * s, 0.09 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 
 // ---------- Vẽ cảnh GATHER ----------
@@ -3048,6 +3966,15 @@ function drawGather(w, h, dt) {
     drawMonster(m, sx, sy, s);
   }
 
+  // Vật phẩm hỗ trợ dưới nước (Bình oxy mini, Chân vịt, Đồ lặn, Bùa hộ mệnh 8s) & Sứa làm chậm
+  const playerPosForPickups = snap.player && snap.player.pos ? snap.player.pos : null;
+  for (const pk of snap.pickups || []) {
+    drawUnderwaterPickup(pk, sx, sy, s, playerPosForPickups);
+  }
+  for (const jf of snap.jellyfish || []) {
+    drawJellyfish(jf, sx, sy, s);
+  }
+
   // Bọt nước
   const p = snap.player;
   if (p && p.pos) {
@@ -3101,6 +4028,51 @@ function drawGather(w, h, dt) {
         ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.ellipse(0, 0, 0.85 * s, 0.52 * s, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#ffe0b2"; ctx.beginPath(); ctx.arc(0.55 * s, 0, 0.34 * s, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+      }
+    }
+
+    // Hiệu ứng trực quan cho Buff/Debuff đang kích hoạt quanh Út Sen
+    const pBuffs = snap.buffs || {};
+    if ((pBuffs.speed_ticks || 0) > 0) {
+      // Vệt nước tăng tốc (Chân vịt / Đồ lặn)
+      const ang = ((p.heading_deg || 0) * Math.PI) / 180;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(ang);
+      ctx.strokeStyle = pBuffs.speed_kind === "diving_suit" ? "rgba(0, 229, 255, 0.78)" : "rgba(128, 222, 234, 0.72)";
+      ctx.lineWidth = 2;
+      for (const oyLine of [-0.55, 0, 0.55]) {
+        const shift = ((animTime * 14 + Math.abs(oyLine) * 3) % 1) * 0.7;
+        ctx.beginPath();
+        ctx.moveTo((-1.1 - shift) * s, oyLine * s);
+        ctx.lineTo((-2.1 - shift) * s, oyLine * s);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    if ((pBuffs.slow_ticks || 0) > 0) {
+      // Vòng tím báo bị Sứa làm chậm
+      ctx.strokeStyle = `rgba(234, 128, 252, ${(0.55 + 0.35 * Math.sin(animTime * 12)).toFixed(2)})`;
+      ctx.lineWidth = 2.6;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.arc(px, py, (1.42 + Math.sin(animTime * 8) * 0.1) * s, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if ((pBuffs.amulet_ticks || 0) > 0) {
+      // Hào quang vàng Bùa hộ mệnh (miễn mất máu & oxy trong 8s)
+      const ag = ctx.createRadialGradient(px, py, 0.6 * s, px, py, 1.9 * s);
+      ag.addColorStop(0, "rgba(255, 213, 79, 0.08)");
+      ag.addColorStop(0.75, "rgba(255, 213, 79, 0.34)");
+      ag.addColorStop(1, "rgba(255, 213, 79, 0)");
+      ctx.fillStyle = ag;
+      ctx.beginPath(); ctx.arc(px, py, 1.9 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#ffd54f";
+      ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.arc(px, py, 1.55 * s, 0, Math.PI * 2); ctx.stroke();
+      for (let k = 0; k < 3; k++) {
+        const oa = animTime * 3.2 + (k * Math.PI * 2) / 3;
+        ctx.fillStyle = "#fff9c4";
+        ctx.beginPath(); ctx.arc(px + Math.cos(oa) * 1.55 * s, py + Math.sin(oa) * 1.55 * s, 0.18 * s, 0, Math.PI * 2); ctx.fill();
       }
     }
 

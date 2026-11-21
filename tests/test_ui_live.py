@@ -41,7 +41,9 @@ class LiveUiContractTest(unittest.TestCase):
                       "titleScreen", "vnDialogue", "Dì Tư", "Anh Ba", "Ông Năm",
                       "/assets/title-bg.jpg", "/assets/portraits-sheet.png",
                       "/assets/customers-sheet.png", "/assets/ut-sen-walk.png",
-                      "drawWoodenChair", "drawMonster", "pauseModal"):
+                      "drawWoodenChair", "drawMonster", "pauseModal",
+                      "volMaster", "volBgm", "volSfx", "BGM_MORNING_LEAD", "BGM_EVENING_LEAD",
+                      "drawUnderwaterPickup", "drawJellyfish", "oxygen_tank", "diving_suit", "amulet"):
             self.assertIn(token, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
         self.assertIn("/assets/ut-sen-swim.png", self.html)
@@ -129,6 +131,10 @@ class LiveUiContractTest(unittest.TestCase):
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "playing")
         self.assertEqual(st["mode"], "gather")
+        # Ngày 1 thực đơn cần ca_loc -> trọng số ca_loc tăng nhẹ so với gốc 0.30 (nhưng vẫn < 0.45)
+        fw_d1 = st["meta"]["fish_weights"]
+        self.assertGreater(fw_d1["ca_loc"], 0.30)
+        self.assertLess(fw_d1["ca_loc"], 0.45)
         oxy_day1 = st["player"]["oxygen_max_ticks"]
 
         # 3. Kiểm bỏ đồ khỏi balo (drop_hold_item), rồi cập bến với đồ trong & ngoài thực đơn -> EveningIntro -> Chợ Ông Năm
@@ -212,6 +218,73 @@ class LiveUiContractTest(unittest.TestCase):
         self.assertEqual(st["screen"], "summary")
         self.assertTrue(st["finished"])
         self.assertEqual(st["reason"], "days_complete")
+
+    def test_live_underwater_pickups_amulet_and_jellyfish(self):
+        """Kiểm chứng vật phẩm dưới nước (bình oxy mini, chân vịt, đồ lặn, bùa hộ mệnh 8s) & sứa làm chậm ở live."""
+        tuning = load_contract()["tuning"]
+        g = LiveGame("gather", tuning, {}, seed=5)
+        st0 = json.loads(g.state_json())
+        self.assertEqual(len(st0["pickups"]), 4)
+        self.assertGreaterEqual(len(st0["jellyfish"]), 4)
+        base_speed = float(g.session.sim.t["swim_speed"])
+
+        # 1. Bình oxy mini hồi oxy khi đang lặn
+        g.session.sim.pos = [30.0, 12.0]
+        g.session.sim.oxygen_ticks = 300
+        oxy_pk = next(p for p in g._underwater.pickups if p["kind"] == "oxygen_tank")
+        oxy_pk["pos"] = [30.2, 12.0]
+        g._tick_once()
+        self.assertGreater(g.session.sim.oxygen_ticks, 300)
+
+        # 2. Chân vịt tăng tốc bơi
+        fins_pk = next(p for p in g._underwater.pickups if p["kind"] == "fins")
+        fins_pk["pos"] = list(g.session.sim.pos)
+        g._tick_once()
+        g._tick_once()
+        self.assertGreater(g.session.sim.t["swim_speed"], base_speed * 1.2)
+        self.assertEqual(g._underwater.speed_kind, "fins")
+
+        # 3. Đồ lặn tăng tốc mạnh hơn
+        suit_pk = next(p for p in g._underwater.pickups if p["kind"] == "diving_suit")
+        suit_pk["pos"] = list(g.session.sim.pos)
+        g._tick_once()
+        g._tick_once()
+        self.assertGreater(g.session.sim.t["swim_speed"], base_speed * 1.45)
+        self.assertEqual(g._underwater.speed_kind, "diving_suit")
+
+        # 4. Sứa làm chậm khi không có bùa
+        g._underwater.speed_ticks = 0
+        g._underwater.speed_kind = None
+        g._underwater.speed_mult = 1.0
+        jf = g._underwater.jellyfish[0]
+        jf["pos"] = list(g.session.sim.pos)
+        jf["base_d"] = g.session.sim.pos[1]
+        jf["hit_cd"] = 0
+        g._tick_once()
+        g._tick_once()
+        self.assertGreater(g._underwater.slow_ticks, 150)
+        self.assertLess(g.session.sim.t["swim_speed"], base_speed * 0.7)
+
+        # 5. Bùa hộ mệnh 8s (480 tick): không mất oxy và không mất máu (kể cả khi oxy=0 và chạm sứa)
+        amulet_pk = next(p for p in g._underwater.pickups if p["kind"] == "amulet")
+        amulet_pk["pos"] = list(g.session.sim.pos)
+        g.session.sim.oxygen_ticks = 600
+        hp_before = g.session.sim.hp
+        g._tick_once()
+        self.assertEqual(g._underwater.amulet_ticks, 480)
+        self.assertEqual(g._underwater.slow_ticks, 0)
+        oxy_locked = g.session.sim.oxygen_ticks
+        for _ in range(120):  # 2 giây dưới nước
+            g._tick_once()
+        self.assertEqual(g.session.sim.oxygen_ticks, oxy_locked)
+        self.assertEqual(g.session.sim.hp, hp_before)
+        # Chạm sứa khi đang có bùa -> bị chặn, không bị làm chậm
+        jf2 = g._underwater.jellyfish[1]
+        jf2["pos"] = list(g.session.sim.pos)
+        jf2["base_d"] = g.session.sim.pos[1]
+        jf2["hit_cd"] = 0
+        g._tick_once()
+        self.assertEqual(g._underwater.slow_ticks, 0)
 
 
 if __name__ == "__main__":

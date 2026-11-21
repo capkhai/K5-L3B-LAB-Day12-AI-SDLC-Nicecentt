@@ -16,7 +16,9 @@ Chế độ `--mode day` tự dùng `runner.Session("day", ...)` khi lõi `chono
 import argparse
 import copy
 import json
+import math
 import os
+import random
 import sys
 import threading
 import time
@@ -54,7 +56,233 @@ MARKET_SELL_PRICES = {
 MARKET_MAX_BUYS_PER_DAY = 3
 MARKET_MAX_BUY_PER_KIND = 2
 
+# Vật phẩm dưới nước & sứa (chỉ chạy ở chế độ live, tắt hoàn toàn ở headless để bảo toàn Test Contract)
+PICKUP_RADIUS = 1.85
+JELLYFISH_RADIUS = 1.55
+OXYGEN_TANK_RESTORE_RATIO = 0.35
+FINS_DURATION_TICKS = 600        # 10s tăng tốc (+35%)
+FINS_SPEED_MULT = 1.35
+SUIT_DURATION_TICKS = 720        # 12s tăng tốc mạnh (+55%) & kháng chậm một phần
+SUIT_SPEED_MULT = 1.55
+AMULET_DURATION_TICKS = 480      # 8s không mất máu, không hao oxy, miễn nhiễm sứa
+JELLY_SLOW_TICKS = 210           # 3.5s bị làm chậm khi chạm sứa
+JELLY_SLOW_MULT = 0.52
+JELLY_SUIT_SLOW_MULT = 0.72
+JELLY_COOLDOWN_TICKS = 90        # 1.5s hồi va chạm mỗi con sứa
+
 LIVE_BUTTONS = ("interact", "catch", "pause", "shop_done", "attack", "photo")
+
+
+class _LiveUnderwaterExtras:
+    """Quản lý vật phẩm hỗ trợ dưới nước (bình oxy mini, chân vịt, đồ lặn, bùa hộ mệnh 8s)
+    và sứa làm chậm — thuần lớp live, không sửa GatherSim hay ảnh hưởng headless."""
+
+    def __init__(self, bounds: dict, seed: int, day: int):
+        self.x_lo, self.x_hi = float(bounds["x"][0]), float(bounds["x"][1])
+        self.d_lo, self.d_hi = float(bounds["d"][0]), float(bounds["d"][1])
+        self.rng = random.Random(int(seed) * 997 + int(day) * 131 + 17)
+        self._next_pickup_id = 1
+        self.pickups = []
+        self.respawn_queue = []  # [(ticks_left, kind)]
+        self.jellyfish = []
+        self.speed_ticks = 0
+        self.speed_kind = None
+        self.speed_mult = 1.0
+        self.amulet_ticks = 0
+        self.slow_ticks = 0
+        self._spawn_initial(day)
+
+    def _depth_range_for(self, kind: str):
+        max_d = max(8.0, self.d_hi - 2.2)
+        if kind == "oxygen_tank":
+            return (min(6.0, max_d * 0.35), min(25.0, max_d))
+        if kind == "fins":
+            return (min(6.0, max_d * 0.35), min(17.0, max_d * 0.72))
+        if kind == "diving_suit":
+            return (min(11.0, max_d * 0.5), min(23.0, max_d * 0.9))
+        # amulet: sâu hơn để tạo thưởng xứng đáng
+        return (min(14.0, max_d * 0.6), min(26.0, max_d))
+
+    def _new_pickup(self, kind: str, depth_override=None) -> dict:
+        d_min, d_max = depth_override if depth_override is not None else self._depth_range_for(kind)
+        if d_max < d_min:
+            d_min, d_max = 5.0, max(6.0, self.d_hi - 2.0)
+        x_lo = min(self.x_hi - 6.0, max(self.x_lo + 12.0, 12.0))
+        x_hi = max(x_lo + 2.0, self.x_hi - 6.0)
+        px = self.rng.uniform(x_lo, x_hi)
+        pd = self.rng.uniform(d_min, d_max)
+        pid = f"P{self._next_pickup_id}"
+        self._next_pickup_id += 1
+        return {"id": pid, "kind": kind, "pos": [px, pd], "phase": self.rng.uniform(0.0, math.tau)}
+
+    def _spawn_initial(self, day: int):
+        max_d = max(8.0, self.d_hi - 2.2)
+        # Vừa đủ 4 vật phẩm hỗ trợ rải khắp dòng sông (không quá dày)
+        self.pickups.append(self._new_pickup("oxygen_tank", (min(11.0, max_d * 0.45), min(22.0, max_d * 0.85))))
+        self.pickups.append(self._new_pickup("fins", (min(8.0, max_d * 0.35), min(17.0, max_d * 0.7))))
+        self.pickups.append(self._new_pickup("diving_suit", (min(14.0, max_d * 0.55), min(24.0, max_d * 0.92))))
+        self.pickups.append(self._new_pickup("amulet", (min(16.0, max_d * 0.62), min(26.0, max_d))))
+        # Sứa (4 con cơ bản, từ ngày 3 trở đi có 5 con)
+        jelly_count = 5 if day >= 3 else 4
+        x_lo = min(self.x_hi - 8.0, max(self.x_lo + 14.0, 14.0))
+        x_hi = max(x_lo + 4.0, self.x_hi - 8.0)
+        span = (x_hi - x_lo) / max(1, jelly_count)
+        for i in range(jelly_count):
+            jx = x_lo + span * (i + 0.5) + self.rng.uniform(-span * 0.25, span * 0.25)
+            base_d = self.rng.uniform(min(6.0, max_d * 0.35), min(23.0, max_d * 0.88))
+            vx = self.rng.choice([-1.0, 1.0]) * self.rng.uniform(0.85, 1.55)
+            self.jellyfish.append({
+                "id": f"J{i + 1}",
+                "pos": [jx, base_d],
+                "base_d": base_d,
+                "vx": vx,
+                "amp": self.rng.uniform(1.1, 2.2),
+                "freq": self.rng.uniform(0.9, 1.5),
+                "phase": self.rng.uniform(0.0, math.tau),
+                "hit_cd": 0,
+            })
+
+    def before_sim_step(self, sim):
+        if not hasattr(sim, "_live_base_swim_speed"):
+            sim._live_base_swim_speed = float(sim.t["swim_speed"])
+        base_speed = sim._live_base_swim_speed
+        boost = self.speed_mult if self.speed_ticks > 0 else 1.0
+        if self.slow_ticks > 0:
+            slow = JELLY_SUIT_SLOW_MULT if (self.speed_ticks > 0 and self.speed_kind == "diving_suit") else JELLY_SLOW_MULT
+        else:
+            slow = 1.0
+        sim.t["swim_speed"] = base_speed * boost * slow
+        if self.amulet_ticks > 0:
+            saved_oxy = sim.oxygen_ticks
+            saved_hp = sim.hp
+            bumped = False
+            if saved_oxy <= 1 and sim.oxygen_max >= 2:
+                sim.oxygen_ticks = 2
+                bumped = True
+            sim.invuln_ticks = max(sim.invuln_ticks, 2)
+            return (saved_oxy, saved_hp, bumped)
+        return None
+
+    def after_sim_step(self, sim, saved_amulet, emit_event):
+        if saved_amulet is not None:
+            saved_oxy, saved_hp, bumped = saved_amulet
+            if bumped and not sim._at_surface():
+                sim.oxygen_ticks = saved_oxy
+            else:
+                sim.oxygen_ticks = max(sim.oxygen_ticks, saved_oxy)
+            sim.hp = max(sim.hp, saved_hp)
+            sim.zero_oxy_ticks = 0
+            self.amulet_ticks = max(0, self.amulet_ticks - 1)
+            if self.amulet_ticks == 0:
+                emit_event("buff_expired", {"kind": "amulet"}, phase="gather")
+
+        if self.speed_ticks > 0:
+            self.speed_ticks -= 1
+            if self.speed_ticks == 0:
+                expired_kind = self.speed_kind
+                self.speed_kind = None
+                self.speed_mult = 1.0
+                if expired_kind:
+                    emit_event("buff_expired", {"kind": expired_kind}, phase="gather")
+
+        if self.slow_ticks > 0:
+            self.slow_ticks -= 1
+
+        # Cập nhật chuyển động sứa (trôi ngang + nhấp nhô mềm)
+        dt = 1.0 / float(getattr(sim, "tick_hz", 60.0))
+        x_min, x_max = self.x_lo + 8.0, self.x_hi - 4.0
+        d_min, d_max = 4.5, max(5.5, self.d_hi - 1.8)
+        for jf in self.jellyfish:
+            if jf["hit_cd"] > 0:
+                jf["hit_cd"] -= 1
+            jf["phase"] = (jf["phase"] + dt * jf["freq"]) % math.tau
+            nx = jf["pos"][0] + jf["vx"] * dt
+            if nx <= x_min:
+                nx = x_min
+                jf["vx"] = abs(jf["vx"])
+            elif nx >= x_max:
+                nx = x_max
+                jf["vx"] = -abs(jf["vx"])
+            nd = max(d_min, min(d_max, jf["base_d"] + math.sin(jf["phase"]) * jf["amp"]))
+            jf["pos"][0] = nx
+            jf["pos"][1] = nd
+
+        # Hồi sinh vật phẩm đã nhặt
+        if self.respawn_queue:
+            still = []
+            for ticks_left, kind in self.respawn_queue:
+                if ticks_left <= 1:
+                    self.pickups.append(self._new_pickup(kind))
+                else:
+                    still.append((ticks_left - 1, kind))
+            self.respawn_queue = still
+
+        if sim.done:
+            return
+
+        # Va chạm nhặt vật phẩm dưới nước
+        remaining_pickups = []
+        for pk in self.pickups:
+            if math.dist(sim.pos, pk["pos"]) <= PICKUP_RADIUS:
+                kind = pk["kind"]
+                if kind == "oxygen_tank":
+                    add_ticks = max(60, int(round(sim.oxygen_max * OXYGEN_TANK_RESTORE_RATIO)))
+                    sim.oxygen_ticks = min(sim.oxygen_max, sim.oxygen_ticks + add_ticks)
+                    sim.zero_oxy_ticks = 0
+                    emit_event("pickup_item", {"id": pk["id"], "kind": kind, "oxy_s": round(add_ticks / 60.0, 1)}, phase="gather")
+                elif kind == "fins":
+                    if self.speed_ticks > 0 and self.speed_kind == "diving_suit":
+                        self.speed_ticks = min(SUIT_DURATION_TICKS + 360, self.speed_ticks + 360)
+                    else:
+                        self.speed_kind = "fins"
+                        self.speed_mult = FINS_SPEED_MULT
+                        self.speed_ticks = FINS_DURATION_TICKS
+                    emit_event("pickup_item", {"id": pk["id"], "kind": kind, "duration_s": round(FINS_DURATION_TICKS / 60.0, 1)}, phase="gather")
+                elif kind == "diving_suit":
+                    self.speed_kind = "diving_suit"
+                    self.speed_mult = SUIT_SPEED_MULT
+                    self.speed_ticks = SUIT_DURATION_TICKS
+                    emit_event("pickup_item", {"id": pk["id"], "kind": kind, "duration_s": round(SUIT_DURATION_TICKS / 60.0, 1)}, phase="gather")
+                elif kind == "amulet":
+                    self.amulet_ticks = AMULET_DURATION_TICKS
+                    self.slow_ticks = 0
+                    sim.zero_oxy_ticks = 0
+                    sim.invuln_ticks = max(sim.invuln_ticks, 2)
+                    emit_event("pickup_item", {"id": pk["id"], "kind": kind, "duration_s": round(AMULET_DURATION_TICKS / 60.0, 1)}, phase="gather")
+                respawn_lo, respawn_hi = (1560, 2160) if kind == "oxygen_tank" else (2100, 2820) if kind == "fins" else (2520, 3240)
+                self.respawn_queue.append((self.rng.randint(respawn_lo, respawn_hi), kind))
+            else:
+                remaining_pickups.append(pk)
+        self.pickups = remaining_pickups
+
+        # Va chạm sứa (làm chậm trừ khi đang có Bùa hộ mệnh)
+        for jf in self.jellyfish:
+            if jf["hit_cd"] == 0 and math.dist(sim.pos, jf["pos"]) <= JELLYFISH_RADIUS:
+                jf["hit_cd"] = JELLY_COOLDOWN_TICKS
+                if self.amulet_ticks > 0:
+                    emit_event("amulet_block", {"source": "jellyfish", "jellyfish_id": jf["id"]}, phase="gather")
+                else:
+                    self.slow_ticks = max(self.slow_ticks, JELLY_SLOW_TICKS)
+                    emit_event("jellyfish_hit", {"jellyfish_id": jf["id"], "slow_s": round(JELLY_SLOW_TICKS / 60.0, 1)}, phase="gather")
+
+    def snapshot(self) -> dict:
+        return {
+            "pickups": [
+                {"id": p["id"], "kind": p["kind"], "pos": [round(p["pos"][0], 2), round(p["pos"][1], 2)], "phase": round(p["phase"], 2)}
+                for p in self.pickups
+            ],
+            "jellyfish": [
+                {"id": j["id"], "pos": [round(j["pos"][0], 2), round(j["pos"][1], 2)], "phase": round(j["phase"], 2)}
+                for j in self.jellyfish
+            ],
+            "buffs": {
+                "speed_ticks": self.speed_ticks,
+                "speed_kind": self.speed_kind,
+                "speed_mult": round(self.speed_mult, 2) if self.speed_ticks > 0 else 1.0,
+                "amulet_ticks": self.amulet_ticks,
+                "slow_ticks": self.slow_ticks,
+            },
+        }
 
 
 def _parse_shop_catalog(tuning: dict) -> dict:
@@ -202,6 +430,7 @@ class LiveGame:
         self.market_buys_by_kind = {}
         self.shop_last_note = ""
         self.market_last_note = ""
+        self._underwater = None
 
         if self.mode == "day":
             native = _try_native_day_session(self.tuning, self._scenario, self._seed, self.days_total)
@@ -216,6 +445,8 @@ class LiveGame:
                 self.screen_ticks_left = 0 if self._start_at_menu else DAY_INTRO_TICKS
         else:
             self.session = Session(self.mode, self.tuning, self._scenario, self._seed, self._initial_inventory)
+            if self.mode == "gather":
+                self._underwater = _LiveUnderwaterExtras(self.tuning["gather"]["bounds"], self._seed, day=1)
             self.screen = "menu" if self._start_at_menu else "playing"
             self.screen_ticks_left = 0
 
@@ -239,12 +470,26 @@ class LiveGame:
 
     def _build_day_gather_session(self, day: int) -> Session:
         day_tuning = self._tuned_for_day(day)
+        # Chế độ live --mode day: tăng nhẹ (~1.45x trọng số, tức +3–8% xác suất) cho loài cá nằm trong thực đơn hôm nay
+        plan = _day_plan_for(day_tuning, day)
+        fw = day_tuning.get("gather", {}).get("fish_weights")
+        if isinstance(fw, dict) and fw:
+            needed_fish = {k for k in plan.get("needed", {}) if k in fw}
+            if needed_fish and len(needed_fish) < len(fw):
+                boosted = {
+                    k: float(w) * (1.45 if k in needed_fish else 1.0)
+                    for k, w in fw.items()
+                }
+                total_w = sum(boosted.values())
+                if total_w > 0:
+                    day_tuning["gather"]["fish_weights"] = {k: round(v / total_w, 4) for k, v in boosted.items()}
         self.tuning = day_tuning
         sess = Session("gather", day_tuning, {}, self._seed + day * 101)
         sess.sim.day = day
         sess.sim.money = self.carry_money
         sess.sim.earned = self.carry_earned
         sess.sim.reputation = self.carry_reputation
+        self._underwater = _LiveUnderwaterExtras(day_tuning["gather"]["bounds"], self._seed, day=day)
         return sess
 
     def _build_day_quan_session(self, day: int, inv_items) -> Session:
@@ -260,6 +505,7 @@ class LiveGame:
         sess.sim.money = self.carry_money
         sess.sim.earned = self.carry_earned
         sess.sim.reputation = self.carry_reputation
+        self._underwater = None
         return sess
 
     # --- luồng nền ----------------------------------------------------------------
@@ -315,8 +561,12 @@ class LiveGame:
         if s.done:
             return
         self._outer_tick += 1
+        uw = self._underwater if getattr(s.sim, "mode", None) == "gather" else None
+        saved_amulet = uw.before_sim_step(s.sim) if uw is not None else None
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
+        if uw is not None:
+            uw.after_sim_step(s.sim, saved_amulet, self._emit_live_event)
         del self.events[:-RECENT_EVENTS]
 
         if s.done:
@@ -562,6 +812,8 @@ class LiveGame:
                 "last_note": self.shop_last_note,
             }
             snap["market"] = self._market_state_locked()
+            if active_mode == "gather" and self._underwater is not None:
+                snap.update(self._underwater.snapshot())
             snap["last_gather_inventory"] = self.last_gather_inventory
             snap["last_gather_reason"] = self.last_gather_reason
             snap["last_day_summary"] = self.last_day_summary
